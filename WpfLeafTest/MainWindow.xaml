@@ -1,0 +1,17 @@
+﻿<Window
+    x:Class="WpfLeafTest.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:WpfLeafTest"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Title="MainWindow"
+    Width="800"
+    Height="450"
+    mc:Ignorable="d">
+    <StackPanel>
+        <Button Click="Button_Click">生成一个</Button>
+        <Button Click="Button_Click_1">生成十个</Button>
+        <Button Click="Id100">生成一百个</Button>
+    </StackPanel>
+</Window>
