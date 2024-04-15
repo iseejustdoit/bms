@@ -21,7 +21,7 @@
 
         public long GetAndIncrement()
         {
-            return Interlocked.Increment(ref value);
+            return Interlocked.Increment(ref value) - 1;
         }
     }
 }

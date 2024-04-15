@@ -4,7 +4,6 @@ using bms.Leaf.Segment.Model;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.Text.Json;
 
 namespace bms.Leaf.Segment
 {
@@ -92,7 +91,9 @@ namespace bms.Leaf.Segment
                     if (!buffer.IsNextReady && (segment.GetIdle() < 0.9 * segment.Step)
                         && buffer.ThreadRunning.CompareAndSet(false, true))
                     {
-                        await Task.Run(async () =>
+                        buffer.ReadWriteLock.ExitReadLock();
+
+                        _ = Task.Run(async () =>
                         {
                             var next = buffer.Segments[buffer.NextPos()];
                             var updateOk = false;
@@ -131,7 +132,8 @@ namespace bms.Leaf.Segment
                 }
                 finally
                 {
-                    buffer.ReadWriteLock.ExitReadLock();
+                    if (buffer.ReadWriteLock.IsReadLockHeld)
+                        buffer.ReadWriteLock.ExitReadLock();
                 }
 
                 await WaitAndSleepAsync(buffer);
@@ -156,7 +158,6 @@ namespace bms.Leaf.Segment
                         return new Result(ExceptionInTwoSegmentsAreNull, Status.EXCEPTION);
                     }
                 }
-
                 finally
                 {
                     buffer.ReadWriteLock.ExitWriteLock();
@@ -242,7 +243,7 @@ namespace bms.Leaf.Segment
                     return;
                 }
                 buffer.UpdateTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-                buffer.Step = leafAlloc.Step;
+                buffer.Step = nextStep;
                 buffer.MinStep = leafAlloc.Step;
             }
             var value = leafAlloc.MaxId - buffer.Step;
@@ -250,7 +251,7 @@ namespace bms.Leaf.Segment
             segment.Max = leafAlloc.MaxId;
             segment.Step = buffer.Step;
             sw.Stop();
-            _logger.LogInformation($"UpdateSegmentFromDbAsync, {key} {JsonSerializer.Serialize(segment)}");
+            _logger.LogInformation($"UpdateSegmentFromDbAsync, {key} {segment}");
         }
 
         public async Task<bool> InitAsync()

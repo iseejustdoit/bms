@@ -34,10 +34,6 @@ namespace bms.Leaf.Segment.DAL.MySql
                         await tran.RollbackAsync();
                         exceptionAction?.Invoke(ex);
                     }
-                    finally
-                    {
-                        await tran.RollbackAsync();
-                    }
                 }
             }
         }
