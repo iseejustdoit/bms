@@ -7,7 +7,7 @@ using System.Diagnostics;
 
 namespace bms.Leaf.Segment
 {
-    public class SegmentIDImpl : IDGen
+    public class SegmentIDGenImpl : IDGen
     {
         private readonly ILogger _logger;
         private readonly IAllocDAL _allocDAL;
@@ -36,14 +36,14 @@ namespace bms.Leaf.Segment
         private volatile bool initOK = false;
         private ConcurrentDictionary<string, SegmentBufferModel> cache = new ConcurrentDictionary<string, SegmentBufferModel>();
         private System.Timers.Timer timer;
-        private SemaphoreSlim semaphore = new SemaphoreSlim(1);
-        public SegmentIDImpl(ILogger<SegmentIDImpl> logger, IAllocDAL allocDAL)
+        private SemaphoreSlim semaphore = new SemaphoreSlim(1, 1);
+        public SegmentIDGenImpl(ILogger<SegmentIDGenImpl> logger, IAllocDAL allocDAL)
         {
             _logger = logger;
             _allocDAL = allocDAL;
         }
 
-        public async Task<Result> GetAsync(string key)
+        public async Task<Result> GetAsync(string key, CancellationToken cancellationToken = default)
         {
             if (!initOK)
             {
@@ -53,14 +53,14 @@ namespace bms.Leaf.Segment
             {
                 if (!buffer.IsInitOk)
                 {
-                    await semaphore.WaitAsync();
+                    await semaphore.WaitAsync(cancellationToken);
                     try
                     {
                         if (!buffer.IsInitOk)
                         {
                             try
                             {
-                                await UpdateSegmentFromDbAsync(key, buffer.Current);
+                                await UpdateSegmentFromDbAsync(key, buffer.Current, cancellationToken);
                                 _logger.LogInformation($"Init buffer. Update leafkey {key} {buffer.Current} from db");
                                 buffer.IsInitOk = true;
                             }
@@ -75,53 +75,23 @@ namespace bms.Leaf.Segment
                         semaphore.Release();
                     }
                 }
-                return await GetIdFromSegmentBufferAsync(buffer);
+                return await GetIdFromSegmentBufferAsync(buffer, cancellationToken);
             }
             return new Result(ExceptionIdKeyNotExists, Status.EXCEPTION);
         }
 
-        private async Task<Result> GetIdFromSegmentBufferAsync(SegmentBufferModel buffer)
+        private async Task<Result> GetIdFromSegmentBufferAsync(SegmentBufferModel buffer, CancellationToken cancellationToken = default)
         {
             while (true)
             {
-                buffer.ReadWriteLock.EnterReadLock();
+                await semaphore.WaitAsync(cancellationToken);
                 try
                 {
                     var segment = buffer.Current;
                     if (!buffer.IsNextReady && (segment.GetIdle() < 0.9 * segment.Step)
                         && buffer.ThreadRunning.CompareAndSet(false, true))
                     {
-                        buffer.ReadWriteLock.ExitReadLock();
-
-                        _ = Task.Run(async () =>
-                        {
-                            var next = buffer.Segments[buffer.NextPos()];
-                            var updateOk = false;
-                            try
-                            {
-                                await UpdateSegmentFromDbAsync(buffer.Key, next);
-                                updateOk = true;
-                                _logger.LogInformation($"update segment {buffer} from db {next}");
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogWarning(ex, $"{buffer.Key} UpdateSegmentFromDbAsync exception");
-                            }
-                            finally
-                            {
-                                if (updateOk)
-                                {
-                                    buffer.ReadWriteLock.EnterWriteLock();
-                                    buffer.IsNextReady = true;
-                                    buffer.ThreadRunning.Set(false);
-                                    buffer.ReadWriteLock.ExitWriteLock();
-                                }
-                                else
-                                {
-                                    buffer.ThreadRunning.Set(false);
-                                }
-                            }
-                        });
+                        _ = UpdateNextSegmentFromDbAsync(buffer, cancellationToken);
                     }
 
                     long value = segment.Value.GetAndIncrement();
@@ -132,13 +102,12 @@ namespace bms.Leaf.Segment
                 }
                 finally
                 {
-                    if (buffer.ReadWriteLock.IsReadLockHeld)
-                        buffer.ReadWriteLock.ExitReadLock();
+                    semaphore.Release();
                 }
 
-                await WaitAndSleepAsync(buffer);
+                await WaitAndSleepAsync(buffer, cancellationToken);
 
-                buffer.ReadWriteLock.EnterWriteLock();
+                await semaphore.WaitAsync(cancellationToken);
                 try
                 {
                     SegmentModel segment = buffer.Current;
@@ -160,12 +129,46 @@ namespace bms.Leaf.Segment
                 }
                 finally
                 {
-                    buffer.ReadWriteLock.ExitWriteLock();
+                    semaphore.Release();
                 }
             }
         }
 
-        private async Task WaitAndSleepAsync(SegmentBufferModel buffer)
+        private async Task UpdateNextSegmentFromDbAsync(SegmentBufferModel buffer, CancellationToken cancellationToken)
+        {
+            var next = buffer.Segments[buffer.NextPos()];
+            var updateOk = false;
+            try
+            {
+                await UpdateSegmentFromDbAsync(buffer.Key, next, cancellationToken);
+                updateOk = true;
+                _logger.LogInformation($"update segment {buffer} from db {next}");
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogWarning($"{buffer.Key} UpdateSegmentFromDbAsync was cancelled");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, $"{buffer.Key} UpdateSegmentFromDbAsync exception");
+            }
+            finally
+            {
+                if (updateOk)
+                {
+                    await semaphore.WaitAsync(cancellationToken);
+                    buffer.IsNextReady = true;
+                    buffer.ThreadRunning.Set(false);
+                    semaphore.Release();
+                }
+                else
+                {
+                    buffer.ThreadRunning.Set(false);
+                }
+            }
+        }
+
+        private async Task WaitAndSleepAsync(SegmentBufferModel buffer, CancellationToken cancellationToken = default)
         {
             int roll = 0;
             while (buffer.ThreadRunning.Get())
@@ -173,13 +176,13 @@ namespace bms.Leaf.Segment
                 roll += 1;
                 if (roll > 10000)
                 {
-                    await Task.Delay(10);
+                    await Task.Delay(10, cancellationToken);
                     break;
                 }
             }
         }
 
-        private async Task UpdateSegmentFromDbAsync(string key, SegmentModel segment)
+        private async Task UpdateSegmentFromDbAsync(string key, SegmentModel segment, CancellationToken cancellationToken = default)
         {
             var sw = new Stopwatch();
             sw.Start();
@@ -187,23 +190,13 @@ namespace bms.Leaf.Segment
             LeafAllocModel leafAlloc;
             if (!buffer.IsInitOk)
             {
-                leafAlloc = await _allocDAL.UpdateMaxIdAndGetLeafAllocAsync(key);
-                if (leafAlloc == null)
-                {
-                    _logger.LogWarning($"LeafAllocModel为NULL,{key}");
-                    return;
-                }
+                leafAlloc = await _allocDAL.UpdateMaxIdAndGetLeafAllocAsync(key, cancellationToken);       
                 buffer.Step = leafAlloc.Step;
                 buffer.MinStep = leafAlloc.Step;
             }
             else if (buffer.UpdateTimestamp == 0)
             {
-                leafAlloc = await _allocDAL.UpdateMaxIdAndGetLeafAllocAsync(key);
-                if (leafAlloc == null)
-                {
-                    _logger.LogWarning($"LeafAllocModel为NULL,{key}");
-                    return;
-                }
+                leafAlloc = await _allocDAL.UpdateMaxIdAndGetLeafAllocAsync(key, cancellationToken);        
                 buffer.UpdateTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
                 buffer.Step = leafAlloc.Step;
                 buffer.MinStep = leafAlloc.Step;
@@ -236,12 +229,7 @@ namespace bms.Leaf.Segment
                 var temp = new LeafAllocModel();
                 temp.Key = key;
                 temp.Step = nextStep;
-                leafAlloc = await _allocDAL.UpdateMaxIdByCustomStepAndGetLeafAllocAsync(temp);
-                if (leafAlloc == null)
-                {
-                    _logger.LogWarning($"LeafAllocModel为NULL,{key}");
-                    return;
-                }
+                leafAlloc = await _allocDAL.UpdateMaxIdByCustomStepAndGetLeafAllocAsync(temp, cancellationToken);      
                 buffer.UpdateTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
                 buffer.Step = nextStep;
                 buffer.MinStep = leafAlloc.Step;
@@ -254,21 +242,20 @@ namespace bms.Leaf.Segment
             _logger.LogInformation($"UpdateSegmentFromDbAsync, {key} {segment}");
         }
 
-        public async Task<bool> InitAsync()
+        public async Task<bool> InitAsync(CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Init ...");
-            await UpdateCacheFromDbAsync();
+            await UpdateCacheFromDbAsync(cancellationToken);
             initOK = true;
-            await UpdateCacheFromDbAtEveryMinuteAsync();
+            UpdateCacheFromDbAtEveryMinute();
             return initOK;
         }
 
-        private async Task UpdateCacheFromDbAtEveryMinuteAsync()
+        private void UpdateCacheFromDbAtEveryMinute()
         {
             timer = new System.Timers.Timer(60000);
             timer.Elapsed += async (sender, e) => await HandleTimerAsync();
             timer.Start();
-            await Task.CompletedTask;
         }
 
         private async Task HandleTimerAsync()
@@ -284,14 +271,14 @@ namespace bms.Leaf.Segment
             }
         }
 
-        private async Task UpdateCacheFromDbAsync()
+        private async Task UpdateCacheFromDbAsync(CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("update cache from db");
             Stopwatch sw = new Stopwatch();
             sw.Start();
             try
             {
-                var dbTags = await _allocDAL.GetAllTagsAsync();
+                var dbTags = await _allocDAL.GetAllTagsAsync(cancellationToken);
                 if (dbTags == null || !dbTags.Any())
                 {
                     return;

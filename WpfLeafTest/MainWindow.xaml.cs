@@ -23,14 +23,14 @@ namespace WpfLeafTest
 
         private async void Init()
         {
-            var connectionString = "DataBase=leaf;Data Source=10.100.193.24;Port=3306;User Id=root;Password=123456;";
+            var connectionString = "DataBase=leaf;Data Source=192.168.10.60;Port=3306;User Id=root;Password=123456;";
             IAllocDAL dal = new AllocDALImpl(connectionString);
             var loggerFactory = LoggerFactory.Create(builder =>
             {
                 builder.AddConsole();
             });
-            var logger = new Logger<SegmentIDImpl>(loggerFactory);
-            idgen = new SegmentIDImpl(logger, dal);
+            var logger = new Logger<SegmentIDGenImpl>(loggerFactory);
+            idgen = new SegmentIDGenImpl(logger, dal);
 
             await idgen.InitAsync();
         }

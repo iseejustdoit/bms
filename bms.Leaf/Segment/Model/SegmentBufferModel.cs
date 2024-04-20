@@ -11,7 +11,6 @@ namespace bms.Leaf.Segment.Model
         private bool nextReady; // Whether the next SegmentModel is ready to switch
         private bool initOk; // Whether initialization is complete
         private readonly AtomicBoolean threadRunning; // Whether the thread is running
-        private readonly ReaderWriterLockSlim lockSlim;
 
         private int step;
         private int minStep;
@@ -23,7 +22,6 @@ namespace bms.Leaf.Segment.Model
             nextReady = false;
             initOk = false;
             threadRunning = new AtomicBoolean(false);
-            lockSlim = new ReaderWriterLockSlim();
         }
 
         public string Key
@@ -69,11 +67,6 @@ namespace bms.Leaf.Segment.Model
         public AtomicBoolean ThreadRunning
         {
             get { return threadRunning; }
-        }
-
-        public ReaderWriterLockSlim ReadWriteLock
-        {
-            get { return lockSlim; }
         }
 
         public int Step

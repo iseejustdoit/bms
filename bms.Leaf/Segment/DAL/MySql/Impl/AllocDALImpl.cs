@@ -1,4 +1,5 @@
 ﻿using bms.Leaf.Segment.Model;
+using System.Threading;
 
 namespace bms.Leaf.Segment.DAL.MySql.Impl
 {
@@ -14,24 +15,19 @@ namespace bms.Leaf.Segment.DAL.MySql.Impl
             MySqlHelper.SetConnString(connectionString);
         }
 
-        public List<LeafAllocModel> GetAllLeafAllocs()
-        {
-            throw new NotImplementedException();
-        }
-
-        public async Task<List<string>> GetAllTagsAsync()
+        public async Task<List<string>> GetAllTagsAsync(CancellationToken cancellationToken = default)
         {
             var resultList = new List<string>();
             await MySqlHelper.ExecuteReaderAsync(SELECT_ALL_TAGS, async (dataReader) =>
             {
-                while (await dataReader.ReadAsync())
+                while (await dataReader.ReadAsync(cancellationToken))
                 {
                     resultList.Add(dataReader.GetString(0));
                 }
-            }); return resultList;
+            }, cancellationToken: cancellationToken); return resultList;
         }
 
-        public async Task<LeafAllocModel> UpdateMaxIdAndGetLeafAllocAsync(string bizTag)
+        public async Task<LeafAllocModel> UpdateMaxIdAndGetLeafAllocAsync(string bizTag, CancellationToken cancellationToken = default)
         {
             LeafAllocModel leafAllocModel = null;
             Exception exception = null;
@@ -40,12 +36,12 @@ namespace bms.Leaf.Segment.DAL.MySql.Impl
                 command.Parameters.AddWithValue("@bizTag", bizTag);
 
                 command.CommandText = UPDATE_MAXID_BY_TAG;
-                await command.ExecuteNonQueryAsync();
+                await command.ExecuteNonQueryAsync(cancellationToken);
 
                 command.CommandText = SELECT_ALLOC_BY_TAG;
-                await using (var dataReader = await command.ExecuteReaderAsync())
+                await using (var dataReader = await command.ExecuteReaderAsync(cancellationToken))
                 {
-                    if (await dataReader.ReadAsync())
+                    if (await dataReader.ReadAsync(cancellationToken))
                     {
                         leafAllocModel = new LeafAllocModel
                         {
@@ -55,7 +51,7 @@ namespace bms.Leaf.Segment.DAL.MySql.Impl
                         };
                     }
                 }
-            }, (ex) => { exception = ex; });
+            }, (ex) => { exception = ex; }, cancellationToken: cancellationToken);
 
             if (exception != null)
                 throw exception;
@@ -63,7 +59,7 @@ namespace bms.Leaf.Segment.DAL.MySql.Impl
             return leafAllocModel;
         }
 
-        public async Task<LeafAllocModel> UpdateMaxIdByCustomStepAndGetLeafAllocAsync(LeafAllocModel leafAlloc)
+        public async Task<LeafAllocModel> UpdateMaxIdByCustomStepAndGetLeafAllocAsync(LeafAllocModel leafAlloc, CancellationToken cancellationToken = default)
         {
             LeafAllocModel leafAllocModel = null;
             Exception exception = null;
@@ -72,14 +68,14 @@ namespace bms.Leaf.Segment.DAL.MySql.Impl
                 command.CommandText = UPDATE_MAXID_BY_CUSTOM_STEP;
                 command.Parameters.AddWithValue("@bizTag", leafAlloc.Key);
                 command.Parameters.AddWithValue("@step", leafAlloc.Step);
-                await command.ExecuteNonQueryAsync();
+                await command.ExecuteNonQueryAsync(cancellationToken);
 
                 command.Parameters.Clear();
                 command.CommandText = SELECT_ALLOC_BY_TAG;
                 command.Parameters.AddWithValue("@bizTag", leafAlloc.Key);
-                await using (var dataReader = await command.ExecuteReaderAsync())
+                await using (var dataReader = await command.ExecuteReaderAsync(cancellationToken))
                 {
-                    if (await dataReader.ReadAsync())
+                    if (await dataReader.ReadAsync(cancellationToken))
                     {
                         leafAllocModel = new LeafAllocModel
                         {
@@ -89,7 +85,7 @@ namespace bms.Leaf.Segment.DAL.MySql.Impl
                         };
                     }
                 }
-            }, (ex) => { exception = ex; });
+            }, (ex) => { exception = ex; }, cancellationToken: cancellationToken);
 
             if (exception != null)
                 throw exception;

@@ -13,13 +13,13 @@ namespace bms.Leaf.Segment.DAL.MySql
             _connectionString = connString;
         }
 
-        public static async Task ExecuteTransactionAsync(Func<MySqlCommand, Task> executeAction, Action<Exception> exceptionAction = null)
+        public static async Task ExecuteTransactionAsync(Func<MySqlCommand, Task> executeAction, Action<Exception> exceptionAction = null, CancellationToken cancellationToken = default)
         {
             await using (var conn = GetConnection())
             {
                 await conn.OpenAsync();
                 var command = conn.CreateCommand();
-                await using (var tran = await conn.BeginTransactionAsync())
+                await using (var tran = await conn.BeginTransactionAsync(cancellationToken))
                 {
                     command.Connection = conn;
                     command.Transaction = tran;
@@ -27,36 +27,38 @@ namespace bms.Leaf.Segment.DAL.MySql
                     try
                     {
                         await executeAction.Invoke(command);
-                        await tran.CommitAsync();
+                        await tran.CommitAsync(cancellationToken);
                     }
                     catch (Exception ex)
                     {
-                        await tran.RollbackAsync();
+                        await tran.RollbackAsync(cancellationToken);
                         exceptionAction?.Invoke(ex);
                     }
                 }
             }
         }
 
-        public static async Task ExecuteReaderAsync(string commandText, Func<MySqlDataReader, Task> action, Dictionary<string, object> paramDict = null)
+        public static async Task ExecuteReaderAsync(string commandText, Func<MySqlDataReader, Task> action,
+            Dictionary<string, object> paramDict = null, CancellationToken cancellationToken = default)
         {
             await using (var conn = GetConnection())
             {
                 var command = new MySqlCommand();
-                await PrepareCommandAsync(command, conn, null, CommandType.Text, commandText, paramDict);
+                await PrepareCommandAsync(command, conn, null, CommandType.Text, commandText, paramDict, cancellationToken);
 
-                await using (var dataReader = await command.ExecuteReaderAsync(CommandBehavior.CloseConnection))
+                await using (var dataReader = await command.ExecuteReaderAsync(CommandBehavior.CloseConnection, cancellationToken))
                 {
                     await action.Invoke(dataReader);
                 }
             }
         }
 
-        private static async Task PrepareCommandAsync(MySqlCommand command, MySqlConnection connection, MySqlTransaction transaction, CommandType commandType, string commandText, Dictionary<string, object> paramDict)
+        private static async Task PrepareCommandAsync(MySqlCommand command, MySqlConnection connection, MySqlTransaction transaction, CommandType commandType,
+            string commandText, Dictionary<string, object> paramDict, CancellationToken cancellationToken = default)
         {
             if (connection.State != ConnectionState.Open)
             {
-                await connection.OpenAsync();
+                await connection.OpenAsync(cancellationToken);
             }
             command.Connection = connection;
             command.CommandText = commandText;
