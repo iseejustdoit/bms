@@ -1,10 +1,10 @@
 ﻿using bms.Leaf.Common;
 
-namespace bms.Leaf.SnowFlake
+namespace bms.Leaf.Snowflake
 {
-    public class SnowFlakeIDGenImpl : IDGen
+    public class SnowflakeIDGenImpl : IDGen
     {
-        public SnowFlakeIDGenImpl()
+        public SnowflakeIDGenImpl()
         {
 
         }
