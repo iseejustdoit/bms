@@ -1,11 +1,12 @@
 ﻿using bms.Leaf.Snowflake.Exceptions;
+using bms.Leaf.SnowFlake;
 using Bms.Leaf.Snowflake;
 using FreeRedis;
 using Microsoft.Extensions.Logging;
 
 namespace bms.Leaf.Snowflake
 {
-    public class SnowflakeRedisHolder
+    public class SnowflakeRedisHolder : ISnowflakeRedisHolder
     {
         private readonly ILogger _logger;
         private string listenAddress = null;
@@ -33,31 +34,31 @@ namespace bms.Leaf.Snowflake
             timer = new Timer(ScheduledUploadData, null, Timeout.Infinite, Timeout.Infinite);
         }
 
-        public async Task<bool> InitAsync()
+        public bool Init()
         {
             try
             {
                 cli = new RedisClient(connectionString);
-                var time = await cli.HGetAsync(PersistentTimeKey, listenAddress);
+                var time = cli.HGet(PersistentTimeKey, listenAddress);
 
                 if (time != null && DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() < long.Parse(time))
                 {
                     throw new CheckLastTimeException("init timestamp check error,redis node timestamp gt this node time");
                 }
 
-                var sequentialObj = await cli.EvalAsync(Constant.RedisAddPersistentScript,
+                var sequentialObj = cli.Eval(Constant.RedisAddPersistentScript,
                     new string[] { PersistentKey, PersistentTimeKey, listenAddress }, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
                 workerId = Convert.ToInt32(sequentialObj);
 
                 // Start the timer
                 timer.Change(schedulePeriod, Timeout.Infinite);
 
-                await UpdateLocalWorkerIDAsync(workerId);
+                UpdateLocalWorkerId(workerId);
             }
             catch (Exception e)
             {
                 _logger.LogError(e, "Start node ERROR");
-                var workerIdResult = await ReadLocalWorkerIDAsync();
+                var workerIdResult = ReadLocalWorkerId();
                 if (workerIdResult == null) return false;
                 this.workerId = workerIdResult.Value;
             }
@@ -65,7 +66,12 @@ namespace bms.Leaf.Snowflake
             return true;
         }
 
-        private async Task<int?> ReadLocalWorkerIDAsync()
+        public int GetWorkerId()
+        {
+            return workerId;
+        }
+
+        private int? ReadLocalWorkerId()
         {
             var fileInfo = GetLocalFilePath();
             int? workerId = null;
@@ -75,7 +81,7 @@ namespace bms.Leaf.Snowflake
                 if (fileInfo.Exists)
                 {
                     using var sr = new StreamReader(fileInfo.FullName);
-                    string content = await sr.ReadToEndAsync();
+                    string content = sr.ReadToEnd();
                     workerId = int.Parse(content);
 
                     _logger.LogInformation($"Read workerID from local file: {workerId}");
@@ -93,7 +99,7 @@ namespace bms.Leaf.Snowflake
             return workerId;
         }
 
-        private async Task UpdateLocalWorkerIDAsync(int workerId)
+        private void UpdateLocalWorkerId(int workerId)
         {
             var fileInfo = GetLocalFilePath();
 
@@ -105,9 +111,9 @@ namespace bms.Leaf.Snowflake
                     Directory.CreateDirectory(parentDirectory);
                 }
 
-                await using (var sw = new StreamWriter(fileInfo.FullName, false))
+                using (var sw = new StreamWriter(fileInfo.FullName, false))
                 {
-                    await sw.WriteAsync(workerId.ToString());
+                    sw.Write(workerId.ToString());
                 }
 
                 _logger.LogInformation($"local file cache workerID is {workerId}");

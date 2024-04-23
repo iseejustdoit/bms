@@ -13,5 +13,8 @@
         <Button Click="Button_Click">生成一个</Button>
         <Button Click="Button_Click_1">生成十个</Button>
         <Button Click="Id100">生成一百个</Button>
+
+        <TextBlock Text="雪花ID"/>
+        <Button Click="SnowflakeId_Click">雪花ID生成一个</Button>
     </StackPanel>
 </Window>
