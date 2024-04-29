@@ -6,6 +6,9 @@ namespace bms.Leaf.Segment.DAL.MySql
     {
         Task<LeafAllocModel> UpdateMaxIdAndGetLeafAllocAsync(string tag, CancellationToken cancellationToken = default);
         Task<LeafAllocModel> UpdateMaxIdByCustomStepAndGetLeafAllocAsync(LeafAllocModel leafAlloc, CancellationToken cancellationToken = default);
+
+        LeafAllocModel UpdateMaxIdAndGetLeafAlloc(string tag);
+        LeafAllocModel UpdateMaxIdByCustomStepAndGetLeafAlloc(LeafAllocModel leafAlloc);
         Task<List<string>> GetAllTagsAsync(CancellationToken cancellationToken = default);
     }
 }

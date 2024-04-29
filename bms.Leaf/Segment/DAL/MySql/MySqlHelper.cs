@@ -37,6 +37,30 @@ namespace bms.Leaf.Segment.DAL.MySql
                 }
             }
         }
+        public static void ExecuteTransaction(Action<MySqlCommand> executeAction, Action<Exception> exceptionAction = null)
+        {
+            using (var conn = GetConnection())
+            {
+                conn.Open();
+                var command = conn.CreateCommand();
+                using (var tran = conn.BeginTransaction())
+                {
+                    command.Connection = conn;
+                    command.Transaction = tran;
+
+                    try
+                    {
+                        executeAction.Invoke(command);
+                        tran.Commit();
+                    }
+                    catch (Exception ex)
+                    {
+                        tran.Rollback();
+                        exceptionAction?.Invoke(ex);
+                    }
+                }
+            }
+        }
 
         public static async Task ExecuteReaderAsync(string commandText, Func<MySqlDataReader, Task> action,
             Dictionary<string, object> paramDict = null, CancellationToken cancellationToken = default)

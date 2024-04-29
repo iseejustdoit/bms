@@ -92,5 +92,71 @@ namespace bms.Leaf.Segment.DAL.MySql.Impl
 
             return leafAllocModel;
         }
+
+        public LeafAllocModel UpdateMaxIdAndGetLeafAlloc(string bizTag)
+        {
+            LeafAllocModel leafAllocModel = null;
+            Exception exception = null;
+            MySqlHelper.ExecuteTransaction((command) =>
+            {
+                command.Parameters.AddWithValue("@bizTag", bizTag);
+
+                command.CommandText = UPDATE_MAXID_BY_TAG;
+                command.ExecuteNonQuery();
+
+                command.CommandText = SELECT_ALLOC_BY_TAG;
+                using (var dataReader = command.ExecuteReader())
+                {
+                    if (dataReader.Read())
+                    {
+                        leafAllocModel = new LeafAllocModel
+                        {
+                            Key = dataReader.GetString(0),
+                            MaxId = dataReader.GetInt64(1),
+                            Step = dataReader.GetInt32(2),
+                        };
+                    }
+                }
+            }, (ex) => { exception = ex; });
+
+            if (exception != null)
+                throw exception;
+
+            return leafAllocModel;
+        }
+
+        public LeafAllocModel UpdateMaxIdByCustomStepAndGetLeafAlloc(LeafAllocModel leafAlloc)
+        {
+            LeafAllocModel? leafAllocModel = null;
+            Exception? exception = null;
+            MySqlHelper.ExecuteTransaction((command) =>
+            {
+                command.CommandText = UPDATE_MAXID_BY_CUSTOM_STEP;
+                command.Parameters.AddWithValue("@bizTag", leafAlloc.Key);
+                command.Parameters.AddWithValue("@step", leafAlloc.Step);
+                command.ExecuteNonQuery();
+
+                command.Parameters.Clear();
+                command.CommandText = SELECT_ALLOC_BY_TAG;
+                command.Parameters.AddWithValue("@bizTag", leafAlloc.Key);
+                using (var dataReader = command.ExecuteReader())
+                {
+                    if (dataReader.Read())
+                    {
+                        leafAllocModel = new LeafAllocModel
+                        {
+                            Key = dataReader.GetString(0),
+                            MaxId = dataReader.GetInt64(1),
+                            Step = dataReader.GetInt32(2),
+                        };
+                    }
+                }
+            }, (ex) => { exception = ex; });
+
+            if (exception != null)
+                throw exception;
+
+            return leafAllocModel;
+        }
     }
 }
