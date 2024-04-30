@@ -1,9 +1,9 @@
-﻿namespace bms.Leaf.SnowFlake
+﻿
+namespace bms.Leaf.SnowFlake
 {
     public interface ISnowflakeRedisHolder
     {
-        bool Init();
-
         int GetWorkerId();
+        Task<bool> InitAsync(CancellationToken cancellationToken);
     }
 }

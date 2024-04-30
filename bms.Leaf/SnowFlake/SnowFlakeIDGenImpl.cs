@@ -18,9 +18,10 @@ namespace bms.Leaf.Snowflake
         private long sequence = 0L;
         private long lastTimestamp = -1L;
         private static readonly ThreadLocal<Random> Random = new ThreadLocal<Random>(() => new Random());
+        private readonly ISnowflakeRedisHolder snowflakeRedisHolder;
 
         public SnowflakeIDGenImpl(ILogger<SnowflakeIDGenImpl> logger, ISnowflakeRedisHolder snowflakeRedisHolder)
-            : this(logger, snowflakeRedisHolder, 1288834974657L)
+            : this(logger, snowflakeRedisHolder, 1714479237930L)
         {
         }
 
@@ -34,11 +35,15 @@ namespace bms.Leaf.Snowflake
             this.workerIdShift = sequenceBits;
             this.timestampLeftShift = sequenceBits + workerIdBits;
             this.sequenceMask = ~(-1L << (int)sequenceBits);
+            this.snowflakeRedisHolder = snowflakeRedisHolder;
 
             if (TimeGen() <= twepoch)
                 throw new ArgumentException("Snowflake not support twepoch gt currentTime");
+        }
 
-            bool initFlag = snowflakeRedisHolder.Init();
+        public async Task<bool> InitAsync(CancellationToken cancellationToken = default)
+        {
+            bool initFlag = await snowflakeRedisHolder.InitAsync(cancellationToken);
             if (initFlag)
             {
                 workerId = snowflakeRedisHolder.GetWorkerId();
@@ -50,16 +55,7 @@ namespace bms.Leaf.Snowflake
             }
             if (workerId < 0 || workerId > maxWorkerId)
                 throw new ArgumentException("workerID must gte 0 and lte 1023");
-        }
-
-        public long GetWorkerId()
-        {
-            return workerId;
-        }
-
-        public async Task<bool> InitAsync(CancellationToken cancellationToken = default)
-        {
-            return await Task.FromResult(true);
+            return true;
         }
 
         public async Task<Result> GetAsync(string key, CancellationToken cancellationToken = default)
