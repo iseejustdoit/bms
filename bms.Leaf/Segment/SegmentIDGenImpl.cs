@@ -59,8 +59,6 @@ namespace bms.Leaf.Segment
                     {
                         if (!buffer.IsInitOk)
                         {
-                            var sw = new Stopwatch();
-                            sw.Start();
                             try
                             {
                                 await UpdateSegmentFromDbAsync(key, buffer.Current);
@@ -70,11 +68,6 @@ namespace bms.Leaf.Segment
                             catch (Exception ex)
                             {
                                 _logger.LogWarning(ex, $"Init buffer {buffer.Current} exception");
-                            }
-                            finally
-                            {
-                                sw.Stop();
-                                Console.WriteLine($"init 耗时：{sw.ElapsedMilliseconds} ms");
                             }
                         }
                     }
@@ -144,11 +137,7 @@ namespace bms.Leaf.Segment
 
         private async Task UpdateNextSegmentFromDbAsync(SegmentBufferModel buffer, CancellationToken cancellationToken)
         {
-            var sw = new Stopwatch();
-            sw.Start();
-
             var next = buffer.Segments[buffer.NextPos()];
-
             var updateOk = false;
             try
             {
@@ -183,15 +172,11 @@ namespace bms.Leaf.Segment
                 {
                     buffer.ThreadRunning.Set(false);
                 }
-                sw.Stop();
-                await Console.Out.WriteLineAsync($"{DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")} UpdateNextSegmentFromDbAsync 耗时：{sw.ElapsedMilliseconds} ms");
             }
         }
 
         private async Task WaitAndSleepAsync(SegmentBufferModel buffer, CancellationToken cancellationToken = default)
         {
-            var sw = new Stopwatch();
-            sw.Start();
             int roll = 0;
             while (buffer.ThreadRunning.Get())
             {
@@ -202,14 +187,10 @@ namespace bms.Leaf.Segment
                     roll = 0;
                 }
             }
-            sw.Stop();
-            await Console.Out.WriteLineAsync($"{DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")} WaitAndSleepAsync 耗时：{sw.ElapsedMilliseconds} ms");
         }
 
         private async Task UpdateSegmentFromDbAsync(string key, SegmentModel segment, CancellationToken cancellationToken = default)
         {
-            var sw = new Stopwatch();
-            sw.Start();
             var buffer = segment.Buffer;
             LeafAllocModel leafAlloc;
             if (!buffer.IsInitOk)
@@ -262,7 +243,7 @@ namespace bms.Leaf.Segment
             segment.Value.Set(value);
             segment.Max = leafAlloc.MaxId;
             segment.Step = buffer.Step;
-            sw.Stop();
+
             _logger.LogInformation($"UpdateSegmentFromDbAsync, {key} {segment}");
         }
 
