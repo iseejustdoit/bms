@@ -1,4 +1,5 @@
 ﻿using bms.Leaf;
+using bms.Leaf.Common;
 using bms.Leaf.Segment;
 using bms.Leaf.Segment.DAL.MySql;
 using bms.Leaf.Segment.DAL.MySql.Impl;
@@ -16,25 +17,25 @@ namespace ConsoleLeafTest
     {
         static async Task Main(string[] args)
         {
-            var connectionString = "DataBase=leaf;Data Source=192.168.10.60;Port=3306;User Id=root;Password=123456;";
-            IAllocDAL dal = new AllocDALImpl(connectionString);
-            var loggerFactory = LoggerFactory.Create(builder =>
-            {
-                builder.AddConsole();
-                builder.SetMinimumLevel(LogLevel.Error);
-            });
-            var logger = new Logger<SegmentIDGenImpl>(loggerFactory);
-            var idgen = new SegmentIDGenImpl(logger, dal);
-
+            //var connectionString = "DataBase=leaf;Data Source=192.168.10.60;Port=3306;User Id=root;Password=123456;";
+            //IAllocDAL dal = new AllocDALImpl(connectionString);
             //var loggerFactory = LoggerFactory.Create(builder =>
             //{
             //    builder.AddConsole();
+            //    builder.SetMinimumLevel(LogLevel.Error);
             //});
-            //var holderLogger = new Logger<SnowflakeRedisHolder>(loggerFactory);
-            //var ip = GetLocalIPAddressWithNetworkInterface(NetworkInterfaceType.Ethernet);
-            //ISnowflakeRedisHolder holder = new SnowflakeRedisHolder(holderLogger, ip, "8080", "192.168.10.60:6379,defaultDatabase=0,password=123456");
-            //var logger = new Logger<SnowflakeIDGenImpl>(loggerFactory);
-            //var idgen = new SnowflakeIDGenImpl(logger, holder);
+            //var logger = new Logger<SegmentIDGenImpl>(loggerFactory);
+            //var idgen = new SegmentIDGenImpl(logger, dal);
+
+            var loggerFactory = LoggerFactory.Create(builder =>
+            {
+                builder.AddConsole();
+            });
+            var holderLogger = new Logger<SnowflakeRedisHolder>(loggerFactory);
+            var ip = Utils.GetIp();
+            ISnowflakeRedisHolder holder = new SnowflakeRedisHolder(holderLogger, ip, "8080", "192.168.10.60:6379,defaultDatabase=0,password=123456");
+            var logger = new Logger<SnowflakeIDGenImpl>(loggerFactory);
+            var idgen = new SnowflakeIDGenImpl(logger, holder);
 
             await idgen.InitAsync();
             Console.WriteLine("------------------- init completed");
@@ -65,29 +66,6 @@ namespace ConsoleLeafTest
             }
             Console.WriteLine($"GetId 平均一秒内调用方法次数：统计次数： {sumDict.Count}  {(double)sumDict.Values.Sum() / sumDict.Count}");
             Console.ReadLine();
-        }
-        public static string GetLocalIPAddressWithNetworkInterface(NetworkInterfaceType _type)
-        {
-            string output = "";
-            var isBreak = false;
-            foreach (NetworkInterface item in NetworkInterface.GetAllNetworkInterfaces())
-            {
-                if (item.NetworkInterfaceType == _type && item.OperationalStatus == OperationalStatus.Up)
-                {
-                    foreach (UnicastIPAddressInformation ip in item.GetIPProperties().UnicastAddresses)
-                    {
-                        if (ip.Address.AddressFamily == AddressFamily.InterNetwork)
-                        {
-                            output = ip.Address.ToString();
-                            isBreak = true;
-                            break;
-                        }
-                    }
-                }
-                if (isBreak)
-                    break;
-            }
-            return output;
         }
     }
 }
