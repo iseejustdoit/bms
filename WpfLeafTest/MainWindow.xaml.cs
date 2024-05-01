@@ -1,13 +1,9 @@
 ﻿using bms.Leaf;
 using bms.Leaf.Common;
-using bms.Leaf.Segment;
-using bms.Leaf.Segment.DAL.MySql;
-using bms.Leaf.Segment.DAL.MySql.Impl;
 using bms.Leaf.Snowflake;
 using bms.Leaf.SnowFlake;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using System.Net.NetworkInformation;
-using System.Net.Sockets;
 using System.Windows;
 
 namespace WpfLeafTest
@@ -18,11 +14,15 @@ namespace WpfLeafTest
     public partial class MainWindow : Window
     {
         private IDGen idgen;
-        public MainWindow()
+        private readonly ITextService textService;
+
+        public MainWindow(ITextService textService)
         {
             InitializeComponent();
 
             Init();
+
+            this.textService = textService;
         }
 
         private async void Init()
@@ -43,20 +43,26 @@ namespace WpfLeafTest
                 builder.AddConsole();
             });
             var holderLogger = new Logger<SnowflakeRedisHolder>(loggerFactory);
-            var ip = GetLocalIPAddressWithNetworkInterface(NetworkInterfaceType.Ethernet);
-            ISnowflakeRedisHolder holder = new SnowflakeRedisHolder(holderLogger, ip, "8080", "172.29.89.20:6379,defaultDatabase=0");
+            var ip = Utils.GetIp();
+            ISnowflakeRedisHolder holder = new SnowflakeRedisHolder(holderLogger, ip, "8080", "192.168.10.60:6379,defaultDatabase=0,password=123456");
             var logger = new Logger<SnowflakeIDGenImpl>(loggerFactory);
             idgen = new SnowflakeIDGenImpl(logger, holder);
         }
 
         private async void Button_Click(object sender, RoutedEventArgs e)
         {
+            textService.Plus();
+            var service = App.Current.ServiceProvider.GetRequiredService<ITextService>();
+            var testWin = new Test(service);
+
+            testWin.Show();
             var result = await idgen.GetAsync("leaf-segment-test");
             MessageBox.Show($"{result.Id},{result.Status}");
         }
 
         private async void Button_Click_1(object sender, RoutedEventArgs e)
         {
+            var text = textService.GetText();
             var idList = new List<long>();
             for (int i = 0; i < 10; i++)
             {
@@ -83,30 +89,6 @@ namespace WpfLeafTest
         {
             var result = await idgen.GetAsync("leaf-segment-test");
             MessageBox.Show($"{result.Id},{result.Status}");
-        }
-
-        public string GetLocalIPAddressWithNetworkInterface(NetworkInterfaceType _type)
-        {
-            string output = "";
-            var isBreak = false;
-            foreach (NetworkInterface item in NetworkInterface.GetAllNetworkInterfaces())
-            {
-                if (item.NetworkInterfaceType == _type && item.OperationalStatus == OperationalStatus.Up)
-                {
-                    foreach (UnicastIPAddressInformation ip in item.GetIPProperties().UnicastAddresses)
-                    {
-                        if (ip.Address.AddressFamily == AddressFamily.InterNetwork)
-                        {
-                            output = ip.Address.ToString();
-                            isBreak = true;
-                            break;
-                        }
-                    }
-                }
-                if (isBreak)
-                    break;
-            }
-            return output;
         }
     }
 }
