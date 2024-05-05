@@ -10,9 +10,9 @@ namespace bms.WebApi.Controllers
     public class SegmentController : ControllerBase
     {
         private readonly IDGen _idGen;
-        public SegmentController( ServiceFactory serviceFactory)
+        public SegmentController(IDGenFactory idGenFactory)
         {
-            _idGen = serviceFactory.Get("Segment");
+            _idGen = idGenFactory.Get("Segment");
         }
         [HttpGet("api/segment/get/{key}")]
         public async Task<IActionResult> GetSegmentId(string key)

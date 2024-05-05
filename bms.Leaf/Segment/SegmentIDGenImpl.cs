@@ -192,7 +192,7 @@ namespace bms.Leaf.Segment
         private async Task UpdateSegmentFromDbAsync(string key, SegmentModel segment, CancellationToken cancellationToken = default)
         {
             var buffer = segment.Buffer;
-            LeafAllocModel leafAlloc;
+            LeafAlloc leafAlloc;
             if (!buffer.IsInitOk)
             {
                 leafAlloc = await _allocDAL.UpdateMaxIdAndGetLeafAllocAsync(key, cancellationToken);
@@ -231,8 +231,8 @@ namespace bms.Leaf.Segment
                 }
                 _logger.LogInformation($"leafKey[{key}], step[{buffer.Step}], duration[{(double)duration / (1000 * 60):0.00}mins],nextStep[{nextStep}]");
 
-                var temp = new LeafAllocModel();
-                temp.Key = key;
+                var temp = new LeafAlloc();
+                temp.BizTag = key;
                 temp.Step = nextStep;
                 leafAlloc = await _allocDAL.UpdateMaxIdByCustomStepAndGetLeafAllocAsync(temp, cancellationToken);
                 buffer.UpdateTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
@@ -245,66 +245,6 @@ namespace bms.Leaf.Segment
             segment.Step = buffer.Step;
 
             _logger.LogInformation($"UpdateSegmentFromDbAsync, {key} {segment}");
-        }
-
-        private void UpdateSegmentFromDb(string key, SegmentModel segment)
-        {
-            var sw = new Stopwatch();
-            sw.Start();
-            var buffer = segment.Buffer;
-            LeafAllocModel leafAlloc;
-            if (!buffer.IsInitOk)
-            {
-                leafAlloc = _allocDAL.UpdateMaxIdAndGetLeafAlloc(key);
-                buffer.Step = leafAlloc.Step;
-                buffer.MinStep = leafAlloc.Step;
-            }
-            else if (buffer.UpdateTimestamp == 0)
-            {
-                leafAlloc = _allocDAL.UpdateMaxIdAndGetLeafAlloc(key);
-                buffer.UpdateTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-                buffer.Step = leafAlloc.Step;
-                buffer.MinStep = leafAlloc.Step;
-            }
-            else
-            {
-                var duration = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - buffer.UpdateTimestamp;
-                var nextStep = buffer.Step;
-                if (duration < SegmentDuration)
-                {
-                    if (nextStep * 2 > MaxStep)
-                    {
-                        // do nothing
-                    }
-                    else
-                    {
-                        nextStep = nextStep * 2;
-                    }
-                }
-                else if (duration < SegmentDuration * 2)
-                {
-                    // do nothing with nextstep
-                }
-                else
-                {
-                    nextStep = nextStep / 2 >= buffer.MinStep ? nextStep / 2 : nextStep;
-                }
-                _logger.LogInformation($"leafKey[{key}], step[{buffer.Step}], duration[{(double)duration / (1000 * 60):0.00}mins],nextStep[{nextStep}]");
-
-                var temp = new LeafAllocModel();
-                temp.Key = key;
-                temp.Step = nextStep;
-                leafAlloc = _allocDAL.UpdateMaxIdByCustomStepAndGetLeafAlloc(temp);
-                buffer.UpdateTimestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-                buffer.Step = nextStep;
-                buffer.MinStep = leafAlloc.Step;
-            }
-            var value = leafAlloc.MaxId - buffer.Step;
-            segment.Value.Set(value);
-            segment.Max = leafAlloc.MaxId;
-            segment.Step = buffer.Step;
-            sw.Stop();
-            _logger.LogInformation($"UpdateSegmentFromDb, {key} {segment}");
         }
 
         public async Task<bool> InitAsync(CancellationToken cancellationToken = default)

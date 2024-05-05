@@ -1,12 +1,11 @@
-
-using bms.Leaf;
 using bms.Leaf.Common;
-using bms.Leaf.Segment;
 using bms.Leaf.Segment.DAL.MySql;
 using bms.Leaf.Segment.DAL.MySql.Impl;
+using bms.Leaf.Segment.Entity;
 using bms.Leaf.Snowflake;
 using bms.Leaf.SnowFlake;
 using bms.WebApi.Service;
+using Microsoft.EntityFrameworkCore;
 
 namespace bms.WebApi
 {
@@ -29,11 +28,14 @@ namespace bms.WebApi
                 builder.AddConsole();
                 builder.SetMinimumLevel(LogLevel.Information);
             });
-            builder.Services.AddScoped<IAllocDAL>((provider) =>
+            var dbConnString = configuration.GetConnectionString("MySql");
+            var serverVersion = ServerVersion.AutoDetect(dbConnString);
+            builder.Services.AddDbContext<LeafContext>(options =>
             {
-                var connectionString = configuration.GetConnectionString("MySql");
-                return new AllocDALImpl(connectionString);
+                options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+                options.UseMySql(dbConnString, serverVersion);
             });
+            builder.Services.AddScoped<IAllocDAL, AllocDALImpl>();
             builder.Services.AddSingleton<ISnowflakeRedisHolder>(provider =>
             {
                 var logger = provider.GetRequiredService<ILogger<SnowflakeRedisHolder>>();
@@ -41,16 +43,9 @@ namespace bms.WebApi
 
                 return new SnowflakeRedisHolder(logger, Utils.GetIp(), httpPort, connectionString);
             });
-
-            builder.Services.AddScoped((provider) =>
-            {
-                var logger = provider.GetRequiredService<ILogger<SegmentIDGenImpl>>();
-                var allocDal = provider.GetRequiredService<IAllocDAL>();
-                return new SegmentIDGenImpl(logger, allocDal);
-            });
-            builder.Services.AddScoped<SnowflakeIDGenImpl>();
-            builder.Services.AddScoped<ZeroIDGen>();
-            builder.Services.AddSingleton<ServiceFactory>();
+            builder.Services.AddIdGen();
+            // ×¢²á·þÎñ
+            builder.Services.AddSingleton<IDGenFactory>();
 
             var app = builder.Build();
 
@@ -62,7 +57,6 @@ namespace bms.WebApi
             }
 
             app.UseAuthorization();
-
 
             app.MapControllers();
 

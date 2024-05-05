@@ -1,162 +1,132 @@
-﻿using bms.Leaf.Segment.Model;
-using System.Threading;
+﻿using bms.Leaf.Segment.Entity;
+using bms.Leaf.Segment.Model;
+using Microsoft.EntityFrameworkCore;
 
 namespace bms.Leaf.Segment.DAL.MySql.Impl
 {
     public class AllocDALImpl : IAllocDAL
     {
-        private const string SELECT_ALL_TAGS = "SELECT BizTag FROM Alloc";
-        private const string UPDATE_MAXID_BY_TAG = "UPDATE Alloc SET MaxId = MaxId + Step WHERE BizTag = @bizTag";
-        private const string SELECT_ALLOC_BY_TAG = "SELECT BizTag,MaxId,Step FROM Alloc WHERE BizTag = @bizTag";
-        private const string UPDATE_MAXID_BY_CUSTOM_STEP = "UPDATE Alloc SET MaxId = MaxId + @step WHERE BizTag = @bizTag";
-
-        public AllocDALImpl(string connectionString)
+        private readonly LeafContext dbContext;
+        public AllocDALImpl(LeafContext leafContext)
         {
-            MySqlHelper.SetConnString(connectionString);
+            dbContext = leafContext;
         }
 
         public async Task<List<string>> GetAllTagsAsync(CancellationToken cancellationToken = default)
         {
-            var resultList = new List<string>();
-            await MySqlHelper.ExecuteReaderAsync(SELECT_ALL_TAGS, async (dataReader) =>
-            {
-                while (await dataReader.ReadAsync(cancellationToken))
-                {
-                    resultList.Add(dataReader.GetString(0));
-                }
-            }, cancellationToken: cancellationToken); return resultList;
+            return await dbContext.LeafAlloc.Select(p => p.BizTag).ToListAsync(cancellationToken);
         }
 
-        public async Task<LeafAllocModel> UpdateMaxIdAndGetLeafAllocAsync(string bizTag, CancellationToken cancellationToken = default)
+        public async Task<LeafAlloc> UpdateMaxIdAndGetLeafAllocAsync(string bizTag, CancellationToken cancellationToken = default)
         {
-            LeafAllocModel leafAllocModel = null;
-            Exception exception = null;
-            await MySqlHelper.ExecuteTransactionAsync(async (command) =>
+            LeafAlloc? entity = null;
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+            try
             {
-                command.Parameters.AddWithValue("@bizTag", bizTag);
-
-                command.CommandText = UPDATE_MAXID_BY_TAG;
-                await command.ExecuteNonQueryAsync(cancellationToken);
-
-                command.CommandText = SELECT_ALLOC_BY_TAG;
-                await using (var dataReader = await command.ExecuteReaderAsync(cancellationToken))
+                var allocToUpdate = await dbContext.LeafAlloc.FirstOrDefaultAsync(p => p.BizTag == bizTag, cancellationToken);
+                if (allocToUpdate != null)
                 {
-                    if (await dataReader.ReadAsync(cancellationToken))
-                    {
-                        leafAllocModel = new LeafAllocModel
-                        {
-                            Key = dataReader.GetString(0),
-                            MaxId = dataReader.GetInt64(1),
-                            Step = dataReader.GetInt32(2),
-                        };
-                    }
+                    allocToUpdate.MaxId += allocToUpdate.Step;
+                    dbContext.LeafAlloc.Update(allocToUpdate);
+                    await dbContext.SaveChangesAsync(cancellationToken);
                 }
-            }, (ex) => { exception = ex; }, cancellationToken: cancellationToken);
 
-            if (exception != null)
-                throw exception;
+                // 执行查询操作
+                entity = await dbContext.LeafAlloc.Where(p => p.BizTag == bizTag).FirstOrDefaultAsync(cancellationToken);
 
-            return leafAllocModel;
+                // 提交事务
+                await transaction.CommitAsync();
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+            return entity;
         }
 
-        public async Task<LeafAllocModel> UpdateMaxIdByCustomStepAndGetLeafAllocAsync(LeafAllocModel leafAlloc, CancellationToken cancellationToken = default)
+        public async Task<LeafAlloc> UpdateMaxIdByCustomStepAndGetLeafAllocAsync(LeafAlloc leafAlloc, CancellationToken cancellationToken = default)
         {
-            LeafAllocModel leafAllocModel = null;
-            Exception exception = null;
-            await MySqlHelper.ExecuteTransactionAsync(async (command) =>
+            LeafAlloc? entity = null;
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+            try
             {
-                command.CommandText = UPDATE_MAXID_BY_CUSTOM_STEP;
-                command.Parameters.AddWithValue("@bizTag", leafAlloc.Key);
-                command.Parameters.AddWithValue("@step", leafAlloc.Step);
-                await command.ExecuteNonQueryAsync(cancellationToken);
-
-                command.Parameters.Clear();
-                command.CommandText = SELECT_ALLOC_BY_TAG;
-                command.Parameters.AddWithValue("@bizTag", leafAlloc.Key);
-                await using (var dataReader = await command.ExecuteReaderAsync(cancellationToken))
+                var allocToUpdate = await dbContext.LeafAlloc.FirstOrDefaultAsync(p => p.BizTag == leafAlloc.BizTag, cancellationToken);
+                if (allocToUpdate != null)
                 {
-                    if (await dataReader.ReadAsync(cancellationToken))
-                    {
-                        leafAllocModel = new LeafAllocModel
-                        {
-                            Key = dataReader.GetString(0),
-                            MaxId = dataReader.GetInt64(1),
-                            Step = dataReader.GetInt32(2),
-                        };
-                    }
+                    allocToUpdate.MaxId += leafAlloc.Step;
+                    dbContext.LeafAlloc.Update(allocToUpdate);
+                    await dbContext.SaveChangesAsync(cancellationToken);
                 }
-            }, (ex) => { exception = ex; }, cancellationToken: cancellationToken);
 
-            if (exception != null)
-                throw exception;
+                // 执行查询操作
+                entity = await dbContext.LeafAlloc.Where(p => p.BizTag == leafAlloc.BizTag).FirstOrDefaultAsync(cancellationToken);
 
-            return leafAllocModel;
+                // 提交事务
+                await transaction.CommitAsync();
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+            return entity;
         }
 
-        public LeafAllocModel UpdateMaxIdAndGetLeafAlloc(string bizTag)
+        public LeafAlloc UpdateMaxIdAndGetLeafAlloc(string bizTag)
         {
-            LeafAllocModel leafAllocModel = null;
-            Exception exception = null;
-            MySqlHelper.ExecuteTransaction((command) =>
+            LeafAlloc? entity = null;
+            using var transaction = dbContext.Database.BeginTransaction();
+            try
             {
-                command.Parameters.AddWithValue("@bizTag", bizTag);
-
-                command.CommandText = UPDATE_MAXID_BY_TAG;
-                command.ExecuteNonQuery();
-
-                command.CommandText = SELECT_ALLOC_BY_TAG;
-                using (var dataReader = command.ExecuteReader())
+                var allocToUpdate = dbContext.LeafAlloc.FirstOrDefault(p => p.BizTag == bizTag);
+                if (allocToUpdate != null)
                 {
-                    if (dataReader.Read())
-                    {
-                        leafAllocModel = new LeafAllocModel
-                        {
-                            Key = dataReader.GetString(0),
-                            MaxId = dataReader.GetInt64(1),
-                            Step = dataReader.GetInt32(2),
-                        };
-                    }
+                    allocToUpdate.MaxId += allocToUpdate.Step;
+                    dbContext.LeafAlloc.Update(allocToUpdate);
+                    dbContext.SaveChanges();
                 }
-            }, (ex) => { exception = ex; });
 
-            if (exception != null)
-                throw exception;
+                // 执行查询操作
+                entity = dbContext.LeafAlloc.Where(p => p.BizTag == bizTag).FirstOrDefault();
 
-            return leafAllocModel;
+                // 提交事务
+                transaction.Commit();
+            }
+            catch (Exception)
+            {
+                transaction.Rollback();
+                throw;
+            }
+            return entity;
         }
 
-        public LeafAllocModel UpdateMaxIdByCustomStepAndGetLeafAlloc(LeafAllocModel leafAlloc)
+        public LeafAlloc UpdateMaxIdByCustomStepAndGetLeafAlloc(LeafAlloc leafAlloc)
         {
-            LeafAllocModel? leafAllocModel = null;
-            Exception? exception = null;
-            MySqlHelper.ExecuteTransaction((command) =>
+            LeafAlloc? entity = null;
+            using var transaction =  dbContext.Database.BeginTransaction();
+            try
             {
-                command.CommandText = UPDATE_MAXID_BY_CUSTOM_STEP;
-                command.Parameters.AddWithValue("@bizTag", leafAlloc.Key);
-                command.Parameters.AddWithValue("@step", leafAlloc.Step);
-                command.ExecuteNonQuery();
-
-                command.Parameters.Clear();
-                command.CommandText = SELECT_ALLOC_BY_TAG;
-                command.Parameters.AddWithValue("@bizTag", leafAlloc.Key);
-                using (var dataReader = command.ExecuteReader())
+                var allocToUpdate =  dbContext.LeafAlloc.FirstOrDefault(p => p.BizTag == leafAlloc.BizTag);
+                if (allocToUpdate != null)
                 {
-                    if (dataReader.Read())
-                    {
-                        leafAllocModel = new LeafAllocModel
-                        {
-                            Key = dataReader.GetString(0),
-                            MaxId = dataReader.GetInt64(1),
-                            Step = dataReader.GetInt32(2),
-                        };
-                    }
+                    allocToUpdate.MaxId += leafAlloc.Step;
+                    dbContext.LeafAlloc.Update(allocToUpdate);
+                     dbContext.SaveChanges();
                 }
-            }, (ex) => { exception = ex; });
 
-            if (exception != null)
-                throw exception;
+                // 执行查询操作
+                entity =  dbContext.LeafAlloc.Where(p => p.BizTag == leafAlloc.BizTag).FirstOrDefault();
 
-            return leafAllocModel;
+                // 提交事务
+                 transaction.CommitAsync();
+            }
+            catch (Exception)
+            {
+                 transaction.RollbackAsync();
+                throw;
+            }
+            return entity;
         }
     }
 }

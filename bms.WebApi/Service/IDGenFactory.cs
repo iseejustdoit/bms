@@ -5,32 +5,33 @@ using bms.Leaf.Snowflake;
 
 namespace bms.WebApi.Service
 {
-    public class ServiceFactory
+    public class IDGenFactory : IDisposable
     {
         private readonly Dictionary<string, IDGen> _idGens = new Dictionary<string, IDGen>();
+        private readonly IServiceScope _scope;
+        private List<string> factoryList;
 
-        private readonly IServiceScopeFactory _scopeFactory;
-
-        public ServiceFactory(IServiceScopeFactory scopeFactory)
+        public IDGenFactory(IServiceProvider scopeFactory)
         {
-            _scopeFactory = scopeFactory;
+            _scope = scopeFactory.CreateScope();
 
-            var idGenSegment = Create("Segment");
-            idGenSegment.InitAsync().Await();
-            _idGens["Segment"] = idGenSegment;
+            factoryList = new List<string> { "Segment", "Snowflake" };
 
-            var idGenSnowflake = Create("Snowflake");
-            idGenSnowflake.InitAsync().Await();
-            _idGens["Snowflake"] = idGenSnowflake;
+            foreach (var factory in factoryList)
+            {
+                var idGen = Create(factory);
+                idGen.InitAsync().Await();
+                _idGens[factory] = idGen;
+            }
         }
+
         public IDGen Get(string name)
         {
             return _idGens[name];
         }
-        public IDGen Create(string name)
+        private IDGen Create(string name)
         {
-            using var scope = _scopeFactory.CreateScope();
-            var provider = scope.ServiceProvider;
+            var provider = _scope.ServiceProvider;
             switch (name)
             {
                 case "Segment":
@@ -40,6 +41,10 @@ namespace bms.WebApi.Service
                 default:
                     return provider.GetRequiredService<ZeroIDGen>();
             }
+        }
+        public void Dispose()
+        {
+            _scope.Dispose();
         }
     }
 }

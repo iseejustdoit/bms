@@ -10,9 +10,9 @@ namespace bms.WebApi.Controllers
     public class SnowflakeController : ControllerBase
     {
         private readonly IDGen _idGen;
-        public SnowflakeController(ServiceFactory serviceFactory)
+        public SnowflakeController(IDGenFactory idGenFactory)
         {
-            _idGen = serviceFactory.Get("Snowflake");
+            _idGen = idGenFactory.Get("Snowflake");
         }
         [HttpGet("api/snowflake/get/{key}")]
         public async Task<IActionResult> GetSnowflakeId(string key)
