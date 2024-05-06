@@ -4,7 +4,7 @@
 
 mysql数据表：
 
-
+```
 create database leaf;
 
 SET NAMES utf8mb4;
@@ -29,3 +29,4 @@ CREATE TABLE `alloc`  (
 INSERT INTO `alloc` VALUES ('leaf-segment-test', 1, 2000, 'Test leaf Segment Mode Get Id', '2024-05-06 11:25:58');
 
 SET FOREIGN_KEY_CHECKS = 1;
+```
