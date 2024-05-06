@@ -27,7 +27,6 @@ namespace bms.Leaf.Segment.DAL.MySql.Impl
                 if (allocToUpdate != null)
                 {
                     allocToUpdate.MaxId += allocToUpdate.Step;
-                    dbContext.LeafAlloc.Update(allocToUpdate);
                     await dbContext.SaveChangesAsync(cancellationToken);
                 }
 
@@ -55,7 +54,6 @@ namespace bms.Leaf.Segment.DAL.MySql.Impl
                 if (allocToUpdate != null)
                 {
                     allocToUpdate.MaxId += leafAlloc.Step;
-                    dbContext.LeafAlloc.Update(allocToUpdate);
                     await dbContext.SaveChangesAsync(cancellationToken);
                 }
 
@@ -104,26 +102,26 @@ namespace bms.Leaf.Segment.DAL.MySql.Impl
         public LeafAlloc UpdateMaxIdByCustomStepAndGetLeafAlloc(LeafAlloc leafAlloc)
         {
             LeafAlloc? entity = null;
-            using var transaction =  dbContext.Database.BeginTransaction();
+            using var transaction = dbContext.Database.BeginTransaction();
             try
             {
-                var allocToUpdate =  dbContext.LeafAlloc.FirstOrDefault(p => p.BizTag == leafAlloc.BizTag);
+                var allocToUpdate = dbContext.LeafAlloc.FirstOrDefault(p => p.BizTag == leafAlloc.BizTag);
                 if (allocToUpdate != null)
                 {
                     allocToUpdate.MaxId += leafAlloc.Step;
                     dbContext.LeafAlloc.Update(allocToUpdate);
-                     dbContext.SaveChanges();
+                    dbContext.SaveChanges();
                 }
 
                 // 执行查询操作
-                entity =  dbContext.LeafAlloc.Where(p => p.BizTag == leafAlloc.BizTag).FirstOrDefault();
+                entity = dbContext.LeafAlloc.Where(p => p.BizTag == leafAlloc.BizTag).FirstOrDefault();
 
                 // 提交事务
-                 transaction.CommitAsync();
+                transaction.CommitAsync();
             }
             catch (Exception)
             {
-                 transaction.RollbackAsync();
+                transaction.RollbackAsync();
                 throw;
             }
             return entity;
