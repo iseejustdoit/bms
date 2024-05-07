@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace bms.Leaf.Snowflake
 {
-    public class SnowflakeIDGenImpl : IDGen
+    public class SnowflakeIDGenImpl : IIDGen
     {
         private readonly ILogger _logger;
         private readonly long twepoch;
@@ -19,6 +19,8 @@ namespace bms.Leaf.Snowflake
         private long lastTimestamp = -1L;
         private static readonly ThreadLocal<Random> Random = new ThreadLocal<Random>(() => new Random());
         private readonly ISnowflakeRedisHolder snowflakeRedisHolder;
+
+        public string Name => "Snowflake";
 
         public SnowflakeIDGenImpl(ILogger<SnowflakeIDGenImpl> logger, ISnowflakeRedisHolder snowflakeRedisHolder)
             : this(logger, snowflakeRedisHolder, 1714479237930L)

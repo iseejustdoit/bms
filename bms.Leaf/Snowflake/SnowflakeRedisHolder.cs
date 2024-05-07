@@ -16,20 +16,19 @@ namespace bms.Leaf.Snowflake
         private static readonly string PersistentTimeKey = Constant.RootName + Constant.Colon + PersistentTimeName;
         private static readonly string PersistentKey = Constant.RootName + Constant.Colon + Constant.PersistentName;
         private static readonly string EphemeralKey = Constant.RootName + Constant.Colon + Constant.EphemeralName;
-        private string connectionString;
         private long lastUpdateTime;
         private readonly string ip;
         private readonly string port;
-        private RedisClient cli;
+        private IRedisClient _redisClient;
         private Timer timer;
 
-        public SnowflakeRedisHolder(ILogger<SnowflakeRedisHolder> logger, string ip, string port, string connectionString)
+        public SnowflakeRedisHolder(ILogger<SnowflakeRedisHolder> logger, IRedisClient redisClient, string ip, string port)
         {
             _logger = logger;
             this.ip = ip;
             this.port = port;
             listenAddress = ip + ":" + port;
-            this.connectionString = connectionString;
+            _redisClient = redisClient;
 
             timer = new Timer(ScheduledUploadData, null, Timeout.Infinite, Timeout.Infinite);
         }
@@ -38,15 +37,14 @@ namespace bms.Leaf.Snowflake
         {
             try
             {
-                cli = new RedisClient(connectionString);
-                var time = await cli.HGetAsync(PersistentTimeKey, listenAddress);
+                var time = await _redisClient.HGetAsync(PersistentTimeKey, listenAddress);
 
                 if (time != null && DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() < long.Parse(time))
                 {
                     throw new CheckLastTimeException("init timestamp check error,redis node timestamp gt this node time");
                 }
 
-                var sequentialObj = await cli.EvalAsync(Constant.RedisAddPersistentScript,
+                var sequentialObj = await _redisClient.EvalAsync(Constant.RedisAddPersistentScript,
                     new string[] { PersistentKey, PersistentTimeKey, listenAddress }, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
                 workerId = Convert.ToInt32(sequentialObj);
 
@@ -144,7 +142,7 @@ namespace bms.Leaf.Snowflake
                 }
                 var ephemeralKey = EphemeralKey + Constant.Colon + listenAddress;
                 long expire = schedulePeriod + 10;
-                await cli.EvalAsync(Constant.RedisUpdateEphemeralScript, new string[] { ephemeralKey, PersistentTimeKey, listenAddress },
+                await _redisClient.EvalAsync(Constant.RedisUpdateEphemeralScript, new string[] { ephemeralKey, PersistentTimeKey, listenAddress },
                         currentTimestamp, expire);
                 lastUpdateTime = currentTimestamp;
             }
@@ -167,7 +165,6 @@ namespace bms.Leaf.Snowflake
         public void Dispose()
         {
             timer?.Dispose();
-            cli?.Dispose();
         }
     }
 }

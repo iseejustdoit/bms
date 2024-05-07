@@ -1,4 +1,4 @@
-﻿using bms.Leaf.Segment.Model;
+﻿using bms.Leaf.Entity;
 
 namespace bms.Leaf.Segment.DAL.MySql
 {

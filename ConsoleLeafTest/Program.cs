@@ -5,6 +5,7 @@ using bms.Leaf.Segment.DAL.MySql;
 using bms.Leaf.Segment.DAL.MySql.Impl;
 using bms.Leaf.Snowflake;
 using bms.Leaf.SnowFlake;
+using FreeRedis;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -33,7 +34,8 @@ namespace ConsoleLeafTest
             });
             var holderLogger = new Logger<SnowflakeRedisHolder>(loggerFactory);
             var ip = Utils.GetIp();
-            ISnowflakeRedisHolder holder = new SnowflakeRedisHolder(holderLogger, ip, "8080", "192.168.10.60:6379,defaultDatabase=0,password=123456");
+            var redisClient = new RedisClient("192.168.10.60:6379,defaultDatabase=0,password=123456");
+            ISnowflakeRedisHolder holder = new SnowflakeRedisHolder(holderLogger, redisClient, ip, "8080");
             var logger = new Logger<SnowflakeIDGenImpl>(loggerFactory);
             var idgen = new SnowflakeIDGenImpl(logger, holder);
 

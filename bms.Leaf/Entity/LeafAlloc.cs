@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace bms.Leaf.Segment.Model
+namespace bms.Leaf.Entity
 {
     [Table("Alloc")]
     public class LeafAlloc

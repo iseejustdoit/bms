@@ -1,4 +1,5 @@
 ﻿using bms.Leaf.Common;
+using bms.Leaf.Entity;
 using bms.Leaf.Segment.DAL.MySql;
 using bms.Leaf.Segment.Model;
 using Microsoft.Extensions.Logging;
@@ -7,7 +8,7 @@ using System.Diagnostics;
 
 namespace bms.Leaf.Segment
 {
-    public class SegmentIDGenImpl : IDGen
+    public class SegmentIDGenImpl : IIDGen
     {
         private readonly ILogger _logger;
         private readonly IAllocDAL _allocDAL;
@@ -37,7 +38,7 @@ namespace bms.Leaf.Segment
         private ConcurrentDictionary<string, SegmentBufferModel> cache = new ConcurrentDictionary<string, SegmentBufferModel>();
         private System.Timers.Timer timer;
         private SemaphoreSlim semaphore = new SemaphoreSlim(1, 1);
-        private static readonly object lockObj = new object();
+        public string Name => "Segment";
         public SegmentIDGenImpl(ILogger<SegmentIDGenImpl> logger, IAllocDAL allocDAL)
         {
             _logger = logger;

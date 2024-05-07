@@ -1,7 +1,6 @@
-﻿using bms.Leaf.Segment.Model;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 
-namespace bms.Leaf.Segment.Entity
+namespace bms.Leaf.Entity
 {
     public class LeafContext : DbContext
     {

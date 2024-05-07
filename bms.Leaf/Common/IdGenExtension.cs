@@ -1,20 +1,21 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Autofac;
 using System.Reflection;
 
 namespace bms.Leaf.Common
 {
     public static class IdGenExtension
     {
-        public static IServiceCollection AddIdGen(this IServiceCollection services)
+        public static void AddIdGen(this ContainerBuilder builder)
         {
-            var idGenTypes = Assembly.GetAssembly(typeof(IDGen))
+            var idGenTypes = Assembly.GetAssembly(typeof(IIDGen))
                 .GetTypes()
-                .Where(p => p.IsClass && !p.IsAbstract && typeof(IDGen).IsAssignableFrom(p));
+                .Where(p => p.IsClass && !p.IsAbstract && typeof(IIDGen).IsAssignableFrom(p));
             foreach (var idGenType in idGenTypes)
             {
-                services.AddScoped(idGenType);
+                builder.RegisterType(idGenType)
+                    .As<IIDGen>()
+                    .SingleInstance();
             }
-            return services;
         }
     }
 }

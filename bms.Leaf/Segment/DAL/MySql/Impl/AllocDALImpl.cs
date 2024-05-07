@@ -1,5 +1,4 @@
-﻿using bms.Leaf.Segment.Entity;
-using bms.Leaf.Segment.Model;
+﻿using bms.Leaf.Entity;
 using Microsoft.EntityFrameworkCore;
 
 namespace bms.Leaf.Segment.DAL.MySql.Impl

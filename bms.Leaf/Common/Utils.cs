@@ -22,7 +22,7 @@ namespace bms.Leaf.Common
         public static string GetIp(string interfaceName)
         {
             string ip;
-            interfaceName = interfaceName.Trim();
+            interfaceName = interfaceName?.Trim();
             try
             {
                 List<string> ipList = GetHostAddress(interfaceName);
@@ -53,7 +53,7 @@ namespace bms.Leaf.Common
                         continue;
 
                     string hostAddress = address.ToString();
-                    if (interfaceName == null)
+                    if (string.IsNullOrEmpty(interfaceName))
                     {
                         ipList.Add(hostAddress);
                     }

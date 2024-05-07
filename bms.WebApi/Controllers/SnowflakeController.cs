@@ -1,7 +1,6 @@
 ﻿using bms.Leaf;
 using bms.Leaf.Common;
 using bms.WebApi.Exceptions;
-using bms.WebApi.Service;
 using Microsoft.AspNetCore.Mvc;
 
 namespace bms.WebApi.Controllers
@@ -9,10 +8,10 @@ namespace bms.WebApi.Controllers
     [ApiController]
     public class SnowflakeController : ControllerBase
     {
-        private readonly IDGen _idGen;
-        public SnowflakeController(IDGenFactory idGenFactory)
+        private readonly IIDGen _idGen;
+        public SnowflakeController(IEnumerable<IIDGen> idGens)
         {
-            _idGen = idGenFactory.Get("Snowflake");
+            _idGen = idGens.FirstOrDefault(p => p.Name == "Snowflake");
         }
         [HttpGet("api/snowflake/get/{key}")]
         public async Task<IActionResult> GetSnowflakeId(string key)

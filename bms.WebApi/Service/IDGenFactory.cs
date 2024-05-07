@@ -7,7 +7,7 @@ namespace bms.WebApi.Service
 {
     public class IDGenFactory : IDisposable
     {
-        private readonly Dictionary<string, IDGen> _idGens = new Dictionary<string, IDGen>();
+        private readonly Dictionary<string, IIDGen> _idGens = new Dictionary<string, IIDGen>();
         private readonly IServiceScope _scope;
         private List<string> factoryList;
 
@@ -25,11 +25,11 @@ namespace bms.WebApi.Service
             }
         }
 
-        public IDGen Get(string name)
+        public IIDGen Get(string name)
         {
             return _idGens[name];
         }
-        private IDGen Create(string name)
+        private IIDGen Create(string name)
         {
             var provider = _scope.ServiceProvider;
             switch (name)

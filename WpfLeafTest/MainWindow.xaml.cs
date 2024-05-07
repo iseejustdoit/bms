@@ -2,6 +2,7 @@
 using bms.Leaf.Common;
 using bms.Leaf.Snowflake;
 using bms.Leaf.SnowFlake;
+using FreeRedis;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Windows;
@@ -13,7 +14,7 @@ namespace WpfLeafTest
     /// </summary>
     public partial class MainWindow : Window
     {
-        private IDGen idgen;
+        private IIDGen idgen;
         private readonly ITextService textService;
 
         public MainWindow(ITextService textService)
@@ -44,7 +45,8 @@ namespace WpfLeafTest
             });
             var holderLogger = new Logger<SnowflakeRedisHolder>(loggerFactory);
             var ip = Utils.GetIp();
-            ISnowflakeRedisHolder holder = new SnowflakeRedisHolder(holderLogger, ip, "8080", "192.168.10.60:6379,defaultDatabase=0,password=123456");
+            var redisClient = new RedisClient("192.168.10.60:6379,defaultDatabase=0,password=123456");
+            ISnowflakeRedisHolder holder = new SnowflakeRedisHolder(holderLogger, redisClient, ip, "8080");
             var logger = new Logger<SnowflakeIDGenImpl>(loggerFactory);
             idgen = new SnowflakeIDGenImpl(logger, holder);
         }

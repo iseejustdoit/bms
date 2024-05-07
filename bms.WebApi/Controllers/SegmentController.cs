@@ -1,7 +1,6 @@
 ﻿using bms.Leaf;
 using bms.Leaf.Common;
 using bms.WebApi.Exceptions;
-using bms.WebApi.Service;
 using Microsoft.AspNetCore.Mvc;
 
 namespace bms.WebApi.Controllers
@@ -9,10 +8,10 @@ namespace bms.WebApi.Controllers
     [ApiController]
     public class SegmentController : ControllerBase
     {
-        private readonly IDGen _idGen;
-        public SegmentController(IDGenFactory idGenFactory)
+        private readonly IIDGen _idGen;
+        public SegmentController(IEnumerable<IIDGen> idGens)
         {
-            _idGen = idGenFactory.Get("Segment");
+            _idGen = idGens.FirstOrDefault(p => p.Name == "Segment");
         }
         [HttpGet("api/segment/get/{key}")]
         public async Task<IActionResult> GetSegmentId(string key)
