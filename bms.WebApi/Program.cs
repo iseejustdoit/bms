@@ -5,6 +5,7 @@ using bms.Leaf.Kestrel;
 using bms.Leaf.Logging;
 using bms.Leaf.MySQL;
 using bms.Leaf.Redis;
+using bms.Leaf.Swagger;
 using bms.Leaf.RedisHolder;
 using bms.WebApi.Services;
 
@@ -21,7 +22,7 @@ namespace bms.WebApi
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+            builder.Services.AddSwaggerDocs();
             builder.Services.AddInitializers(typeof(IIDGenInitializer));
             builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
             builder.Host.ConfigureContainer<ContainerBuilder>(builder =>
@@ -45,8 +46,7 @@ namespace bms.WebApi
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
-                app.UseSwagger();
-                app.UseSwaggerUI();
+                app.UseSwaggerDocs();               
             }
 
             app.UseAuthorization();
