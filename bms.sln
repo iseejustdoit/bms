@@ -9,7 +9,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WpfLeafTest", "WpfLeafTest\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConsoleLeafTest", "ConsoleLeafTest\ConsoleLeafTest.csproj", "{11022824-6B0C-428D-B276-F1338FEE77D8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "bms.WebApi", "bms.WebApi\bms.WebApi.csproj", "{A3C7D1FE-4850-4DA3-BC72-32E9EC4D0456}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "bms.WebApi", "bms.WebApi\bms.WebApi.csproj", "{A3C7D1FE-4850-4DA3-BC72-32E9EC4D0456}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

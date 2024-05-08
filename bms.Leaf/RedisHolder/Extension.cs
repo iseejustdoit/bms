@@ -17,9 +17,11 @@ namespace bms.Leaf.RedisHolder
             {
                 var configuration = context.Resolve<IConfiguration>();
                 var option = configuration.GetOptions<RedisHolderOption>("redisholder");
+
                 if (option != null)
                 {
-                    option.HttpPort = configuration["httpport"];
+                    var portOption = configuration.GetOptions<PortOption>("port");
+                    option.HttpPort = portOption.HttpPort.ToString();
                 }
                 return option;
             }).SingleInstance();

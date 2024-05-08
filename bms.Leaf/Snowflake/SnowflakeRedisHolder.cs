@@ -124,7 +124,7 @@ namespace bms.Leaf.Snowflake
 
         private FileInfo GetLocalFilePath()
         {
-            var filePath = Path.Combine(Directory.GetCurrentDirectory(), "leafconf", Constant.RootName, Constant.Strike, ip, Constant.Strike, port);
+            var filePath = Path.Combine(AppContext.BaseDirectory, "leafconf", Constant.RootName, ip, port);
 
             _logger.LogDebug($"获取本地缓存文件路径{filePath}");
 

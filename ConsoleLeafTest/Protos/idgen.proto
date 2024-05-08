@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+option csharp_namespace = "bms.WebApi.Protos";
+
+package idgen;
+
+service IdGenerator {
+  rpc GetSegmentId(KeyRequest) returns (IdResult) {}
+  rpc GetSnowflakeId(KeyRequest) returns (IdResult) {}
+}
+
+message KeyRequest {
+  string key = 1;
+}
+
+message IdResult {
+  string id = 1;
+}

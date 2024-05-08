@@ -1,5 +1,5 @@
 ﻿using bms.Leaf;
-using bms.Leaf.Common;
+using bms.WebApi.Common;
 using bms.WebApi.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,7 +18,7 @@ namespace bms.WebApi.Controllers
         {
             try
             {
-                return Ok(Get(key, await _idGen.GetAsync(key)));
+                return Ok(ResultParser.ParseResult(key, await _idGen.GetAsync(key)));
             }
             catch (NoKeyException)
             {
@@ -28,19 +28,6 @@ namespace bms.WebApi.Controllers
             {
                 return StatusCode(500, ex.Message);
             }
-        }
-
-        private string Get(string key, Result id)
-        {
-            if (string.IsNullOrEmpty(key))
-            {
-                throw new NoKeyException();
-            }
-            if (id.Status == Status.EXCEPTION)
-            {
-                throw new LeafServerException(id.ToString());
-            }
-            return id.Id.ToString();
-        }
+        }      
     }
 }
