@@ -15,6 +15,12 @@ namespace bms.WebApi.Controllers
             _segmentIdGen = idGens.FirstOrDefault(p => p.Name == "Segment");
             _snowflakeIdGen = idGens.FirstOrDefault(p => p.Name == "Snowflake");
         }
+
+        /// <summary>
+        /// 获取号段ID
+        /// </summary>
+        /// <param name="key">业务Key</param>
+        /// <returns></returns>
         [HttpGet("api/segment/get/{key}")]
         public async Task<IActionResult> GetSegmentId(string key)
         {
@@ -24,6 +30,11 @@ namespace bms.WebApi.Controllers
             });
         }
 
+        /// <summary>
+        /// 获取雪花ID
+        /// </summary>
+        /// <param name="key">业务Key(可以随便填)</param>
+        /// <returns></returns>
         [HttpGet("api/snowflake/get/{key}")]
         public async Task<IActionResult> GetSnowflakeId(string key)
         {

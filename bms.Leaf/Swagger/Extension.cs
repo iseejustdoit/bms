@@ -24,7 +24,15 @@ namespace bms.Leaf.Swagger
 
             return services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc(option.Name, new OpenApiInfo { Title = option.Title, Version = option.Version });
+                c.SwaggerDoc(option.Name, new OpenApiInfo
+                {
+                    Title = option.Title,
+                    Version = option.Version,
+                    Description = "分布式ID生成服务"
+                });
+                // 为 Swagger JSON and UI设置xml文档注释路径
+                var xmlPath = Path.Combine(AppContext.BaseDirectory, "bms.WebApi.xml");
+                c.IncludeXmlComments(xmlPath);
                 if (option.IncludeSecurity)
                 {
                     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
