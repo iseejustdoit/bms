@@ -1,5 +1,4 @@
-﻿using bms.Leaf;
-using bms.Leaf.Common;
+﻿using bms.Leaf.Common;
 using bms.Leaf.Snowflake;
 using bms.Leaf.SnowFlake;
 using FreeRedis;
@@ -14,31 +13,19 @@ namespace WpfLeafTest
     /// </summary>
     public partial class MainWindow : Window
     {
-        private IIDGen idgen;
+        private SnowflakeIDGenImpl? idgen;
         private readonly ITextService textService;
 
         public MainWindow(ITextService textService)
         {
             InitializeComponent();
 
-            Init();
-
             this.textService = textService;
+            Init().ConfigureAwait(false);
         }
 
-        private async void Init()
+        private async Task Init()
         {
-            //var connectionString = "DataBase=leaf;Data Source=192.168.10.60;Port=3306;User Id=root;Password=123456;";
-            //IAllocDAL dal = new AllocDALImpl(connectionString);
-            //var loggerFactory = LoggerFactory.Create(builder =>
-            //{
-            //    builder.AddConsole();
-            //});
-            //var logger = new Logger<SegmentIDGenImpl>(loggerFactory);
-            //idgen = new SegmentIDGenImpl(logger, dal);
-
-            //await idgen.InitAsync();
-
             var loggerFactory = LoggerFactory.Create(builder =>
             {
                 builder.AddConsole();
@@ -49,10 +36,16 @@ namespace WpfLeafTest
             ISnowflakeRedisHolder holder = new SnowflakeRedisHolder(holderLogger, redisClient, ip, "8080");
             var logger = new Logger<SnowflakeIDGenImpl>(loggerFactory);
             idgen = new SnowflakeIDGenImpl(logger, holder);
+            await idgen.InitAsync();
         }
 
         private async void Button_Click(object sender, RoutedEventArgs e)
         {
+            if (idgen == null)
+            {
+                MessageBox.Show("ID generator is not initialized.");
+                return;
+            }
             textService.Plus();
             var service = App.Current.ServiceProvider.GetRequiredService<ITextService>();
             var testWin = new Test(service);
@@ -64,7 +57,11 @@ namespace WpfLeafTest
 
         private async void Button_Click_1(object sender, RoutedEventArgs e)
         {
-            var text = textService.GetText();
+            if (idgen == null)
+            {
+                MessageBox.Show("ID generator is not initialized.");
+                return;
+            }
             var idList = new List<long>();
             for (int i = 0; i < 10; i++)
             {
@@ -77,6 +74,11 @@ namespace WpfLeafTest
 
         private async void Id100(object sender, RoutedEventArgs e)
         {
+            if (idgen == null)
+            {
+                MessageBox.Show("ID generator is not initialized.");
+                return;
+            }
             var idList = new List<long>();
             for (int i = 0; i < 100; i++)
             {
@@ -89,6 +91,11 @@ namespace WpfLeafTest
 
         private async void SnowflakeId_Click(object sender, RoutedEventArgs e)
         {
+            if (idgen == null)
+            {
+                MessageBox.Show("ID generator is not initialized.");
+                return;
+            }
             var result = await idgen.GetAsync("leaf-segment-test");
             MessageBox.Show($"{result.Id},{result.Status}");
         }

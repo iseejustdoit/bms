@@ -15,7 +15,10 @@ namespace bms.Leaf.Initializer
                    var validInitializers = initializers.Where(t => typeof(IInitializer).IsAssignableFrom(t));
                    foreach (var initializer in validInitializers)
                    {
-                       startupInitializer.AddInitializer(c.GetService(initializer) as IInitializer);
+                       if (c.GetService(initializer) is IInitializer service)
+                       {
+                           startupInitializer.AddInitializer(service);
+                       }
                    }
 
                    return startupInitializer;
@@ -30,14 +33,18 @@ namespace bms.Leaf.Initializer
 
         public static void AddIdGen(this ContainerBuilder builder)
         {
-            var idGenTypes = Assembly.GetAssembly(typeof(IIDGen))
-                .GetTypes()
-                .Where(p => p.IsClass && !p.IsAbstract && typeof(IIDGen).IsAssignableFrom(p));
-            foreach (var idGenType in idGenTypes)
+            var idGenAssembly = Assembly.GetAssembly(typeof(IIDGen));
+            if (idGenAssembly != null)
             {
-                builder.RegisterType(idGenType)
-                    .As<IIDGen>()
-                    .SingleInstance();
+                var idGenTypes = idGenAssembly
+                    .GetTypes()
+                    .Where(p => p.IsClass && !p.IsAbstract && typeof(IIDGen).IsAssignableFrom(p));
+                foreach (var idGenType in idGenTypes)
+                {
+                    builder.RegisterType(idGenType)
+                        .As<IIDGen>()
+                        .SingleInstance();
+                }
             }
         }
     }

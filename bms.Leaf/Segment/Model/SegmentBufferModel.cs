@@ -5,8 +5,8 @@ namespace bms.Leaf.Segment.Model
 {
     public class SegmentBufferModel
     {
-        private string key;
-        private SegmentModel[] segments; // Double buffer
+        private string? key;
+        private readonly SegmentModel[] segments; // Double buffer
         private int currentPos; // Current index of the SegmentModel in use
         private bool nextReady; // Whether the next SegmentModel is ready to switch
         private bool initOk; // Whether initialization is complete
@@ -25,7 +25,7 @@ namespace bms.Leaf.Segment.Model
             lockSlim = new ReaderWriterLockSlim();
         }
 
-        public string Key
+        public string? Key
         {
             get { return key; }
             set { key = value; }
@@ -94,7 +94,7 @@ namespace bms.Leaf.Segment.Model
 
         public override string ToString()
         {
-            StringBuilder sb = new StringBuilder("SegmentBuffer{");
+            StringBuilder sb = new("SegmentBuffer{");
             sb.Append("key='").Append(key).Append('\'');
             sb.Append(", segments=").Append(string.Join(", ", segments.Select(s => s.ToString())));
             sb.Append(", currentPos=").Append(currentPos);

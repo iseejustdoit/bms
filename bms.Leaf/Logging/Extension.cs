@@ -7,7 +7,7 @@ namespace bms.Leaf.Logging
 {
     public static class Extension
     {
-        public static void UseSerilog(this IHostBuilder builder, string applicationName = null)
+        public static void UseSerilog(this IHostBuilder builder, string? applicationName = null)
         {
             builder.UseSerilog((context, loggerConfiguration) =>
             {

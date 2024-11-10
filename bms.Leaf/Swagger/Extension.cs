@@ -13,7 +13,7 @@ namespace bms.Leaf.Swagger
             SwaggerOption option;
             using (var serviceProvider = services.BuildServiceProvider())
             {
-                var configuration = serviceProvider.GetService<IConfiguration>();
+                var configuration = serviceProvider.GetService<IConfiguration>() ?? throw new InvalidOperationException("IConfiguration service is not available.");
                 option = configuration.GetOptions<SwaggerOption>("swagger");
             }
 
@@ -49,8 +49,8 @@ namespace bms.Leaf.Swagger
 
         public static IApplicationBuilder UseSwaggerDocs(this IApplicationBuilder builder)
         {
-            var option = builder.ApplicationServices.GetService<IConfiguration>()
-                .GetOptions<SwaggerOption>("swagger");
+            var configuration = builder.ApplicationServices.GetService<IConfiguration>() ?? throw new InvalidOperationException("IConfiguration service is not available.");
+            var option = configuration.GetOptions<SwaggerOption>("swagger");
             if (!option.Enabled)
             {
                 return builder;

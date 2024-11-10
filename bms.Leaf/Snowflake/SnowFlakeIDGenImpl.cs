@@ -17,7 +17,7 @@ namespace bms.Leaf.Snowflake
         private long workerId;
         private long sequence = 0L;
         private long lastTimestamp = -1L;
-        private static readonly ThreadLocal<Random> Random = new ThreadLocal<Random>(() => new Random());
+        private static readonly ThreadLocal<Random> Random = new(() => new Random());
         private readonly ISnowflakeRedisHolder snowflakeRedisHolder;
 
         public string Name => "Snowflake";
@@ -49,7 +49,7 @@ namespace bms.Leaf.Snowflake
             if (initFlag)
             {
                 workerId = snowflakeRedisHolder.GetWorkerId();
-                _logger.LogInformation($"START SUCCESS USE Redis WORKERID-{workerId}");
+                _logger.LogInformation("START SUCCESS USE Redis WORKERID-{workerId}", workerId);
             }
             else
             {
@@ -93,20 +93,20 @@ namespace bms.Leaf.Snowflake
                 sequence = (sequence + 1) & sequenceMask;
                 if (sequence == 0)
                 {
-                    sequence = Random.Value.Next(100);
+                    sequence = Random.Value!.Next(100);
                     timestamp = TilNextMillis(lastTimestamp);
                 }
             }
             else
             {
-                sequence = Random.Value.Next(100);
+                sequence = Random.Value!.Next(100);
             }
             lastTimestamp = timestamp;
             long id = ((timestamp - twepoch) << (int)timestampLeftShift) | (workerId << (int)workerIdShift) | sequence;
             return new Result(id, Status.SUCCESS);
         }
 
-        protected long TilNextMillis(long lastTimestamp)
+        protected static long TilNextMillis(long lastTimestamp)
         {
             long timestamp = TimeGen();
             while (timestamp <= lastTimestamp)
@@ -116,7 +116,7 @@ namespace bms.Leaf.Snowflake
             return timestamp;
         }
 
-        protected long TimeGen()
+        protected static long TimeGen()
         {
             return DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         }

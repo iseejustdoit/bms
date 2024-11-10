@@ -23,21 +23,21 @@ namespace bms.Leaf.RedisHolder
                     var portOption = configuration.GetOptions<PortOption>("port");
                     option.HttpPort = portOption.HttpPort.ToString();
                 }
-                return option;
+                return option!;
             }).SingleInstance();
 
             builder.Register(context =>
             {
                 var configuration = context.Resolve<IConfiguration>();
                 var option = context.Resolve<RedisHolderOption>();
-                string ip = option.Ip;
+                string ip = option.Ip!;
                 if (string.IsNullOrEmpty(ip))
                 {
-                    ip = Utils.GetIp(option.Interface);
+                    ip = Utils.GetIp(option.Interface!);
                 }
                 var logger = context.Resolve<ILogger<SnowflakeRedisHolder>>();
                 var redisClient = context.Resolve<IRedisClient>();
-                return new SnowflakeRedisHolder(logger, redisClient, ip, option.HttpPort);
+                return new SnowflakeRedisHolder(logger, redisClient, ip, option.HttpPort!);
             }).As<ISnowflakeRedisHolder>().SingleInstance();
         }
     }

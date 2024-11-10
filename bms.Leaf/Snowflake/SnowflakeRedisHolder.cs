@@ -9,9 +9,9 @@ namespace bms.Leaf.Snowflake
     public class SnowflakeRedisHolder : ISnowflakeRedisHolder
     {
         private readonly ILogger _logger;
-        private string listenAddress = null;
+        private readonly string? listenAddress = null;
         private int workerId;
-        private long schedulePeriod = 5;
+        private readonly long schedulePeriod = 5;
         private static readonly string PersistentTimeName = Constant.PersistentName + "-time";
         private static readonly string PersistentTimeKey = Constant.RootName + Constant.Colon + PersistentTimeName;
         private static readonly string PersistentKey = Constant.RootName + Constant.Colon + Constant.PersistentName;
@@ -19,8 +19,8 @@ namespace bms.Leaf.Snowflake
         private long lastUpdateTime;
         private readonly string ip;
         private readonly string port;
-        private IRedisClient _redisClient;
-        private Timer timer;
+        private readonly IRedisClient _redisClient;
+        private readonly Timer timer;
 
         public SnowflakeRedisHolder(ILogger<SnowflakeRedisHolder> logger, IRedisClient redisClient, string ip, string port)
         {
@@ -30,7 +30,7 @@ namespace bms.Leaf.Snowflake
             listenAddress = ip + ":" + port;
             _redisClient = redisClient;
 
-            timer = new Timer(ScheduledUploadData, null, Timeout.Infinite, Timeout.Infinite);
+            timer = new Timer(ScheduledUploadData!, null, Timeout.Infinite, Timeout.Infinite);
         }
 
         public async Task<bool> InitAsync(CancellationToken cancellationToken)
@@ -45,7 +45,7 @@ namespace bms.Leaf.Snowflake
                 }
 
                 var sequentialObj = await _redisClient.EvalAsync(Constant.RedisAddPersistentScript,
-                    new string[] { PersistentKey, PersistentTimeKey, listenAddress }, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+                    [PersistentKey, PersistentTimeKey, listenAddress], DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
                 workerId = Convert.ToInt32(sequentialObj);
 
                 // Start the timer
@@ -82,11 +82,11 @@ namespace bms.Leaf.Snowflake
                     string content = await sr.ReadToEndAsync(cancellationToken);
                     workerId = int.Parse(content);
 
-                    _logger.LogInformation($"Read workerID from local file: {workerId}");
+                    _logger.LogInformation("Read workerID from local file: {workerId}", workerId);
                 }
                 else
                 {
-                    _logger.LogWarning($"File does not exist: {fileInfo.FullName}");
+                    _logger.LogWarning("File does not exist: {fullName}", fileInfo.FullName);
                 }
             }
             catch (Exception e)
@@ -103,7 +103,7 @@ namespace bms.Leaf.Snowflake
 
             try
             {
-                string parentDirectory = fileInfo.DirectoryName;
+                string parentDirectory = fileInfo.DirectoryName!;
                 if (!Directory.Exists(parentDirectory))
                 {
                     Directory.CreateDirectory(parentDirectory);
@@ -114,7 +114,7 @@ namespace bms.Leaf.Snowflake
                     await sw.WriteAsync(workerId.ToString().AsMemory(), cancellationToken);
                 }
 
-                _logger.LogInformation($"local file cache workerID is {workerId}");
+                _logger.LogInformation("local file cache workerID is {workerId}", workerId);
             }
             catch (Exception e)
             {
@@ -126,7 +126,7 @@ namespace bms.Leaf.Snowflake
         {
             var filePath = Path.Combine(AppContext.BaseDirectory, "leafconf", Constant.RootName, ip, port);
 
-            _logger.LogDebug($"获取本地缓存文件路径{filePath}");
+            _logger.LogDebug("获取本地缓存文件路径{filePath}", filePath);
 
             return new FileInfo(filePath);
         }
@@ -142,7 +142,7 @@ namespace bms.Leaf.Snowflake
                 }
                 var ephemeralKey = EphemeralKey + Constant.Colon + listenAddress;
                 long expire = schedulePeriod + 10;
-                await _redisClient.EvalAsync(Constant.RedisUpdateEphemeralScript, new string[] { ephemeralKey, PersistentTimeKey, listenAddress },
+                await _redisClient.EvalAsync(Constant.RedisUpdateEphemeralScript, [ephemeralKey, PersistentTimeKey, listenAddress],
                         currentTimestamp, expire);
                 lastUpdateTime = currentTimestamp;
             }

@@ -7,7 +7,7 @@ namespace bms.Leaf.Entity
     public class LeafAlloc
     {
         [Key]
-        public string BizTag { get; set; }
+        public required string BizTag { get; set; }
         public long MaxId { get; set; }
         public int Step { get; set; }
         public DateTime UpdateTime { get; set; }

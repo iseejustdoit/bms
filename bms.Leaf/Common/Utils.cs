@@ -10,7 +10,7 @@ namespace bms.Leaf.Common
             string ip;
             try
             {
-                List<string> ipList = GetHostAddress(null);
+                List<string> ipList = GetHostAddress(string.Empty);
                 ip = (ipList.Count > 0) ? ipList[0] : "";
             }
             catch
@@ -19,10 +19,10 @@ namespace bms.Leaf.Common
             }
             return ip;
         }
-        public static string GetIp(string interfaceName)
+        public static string GetIp(string? interfaceName)
         {
             string ip;
-            interfaceName = interfaceName?.Trim();
+            interfaceName = interfaceName?.Trim() ?? string.Empty;
             try
             {
                 List<string> ipList = GetHostAddress(interfaceName);
@@ -37,7 +37,7 @@ namespace bms.Leaf.Common
 
         private static List<string> GetHostAddress(string interfaceName)
         {
-            List<string> ipList = new List<string>(5);
+            List<string> ipList = new(5);
             NetworkInterface[] interfaces = NetworkInterface.GetAllNetworkInterfaces();
             foreach (NetworkInterface ni in interfaces)
             {
