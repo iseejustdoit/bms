@@ -7,27 +7,26 @@ namespace bms.Leaf.Segment.DAL.MySql.Impl
     {
         public async Task<List<string>> GetAllTagsAsync(CancellationToken cancellationToken = default)
         {
-            return await leafContext.LeafAlloc.Select(p => p.BizTag).ToListAsync(cancellationToken);
+            return await leafContext.LeafAlloc.Select.ToListAsync(p => p.BizTag, cancellationToken);
         }
 
         public async Task<LeafAlloc?> UpdateMaxIdAndGetLeafAllocAsync(string bizTag, CancellationToken cancellationToken = default)
         {
             LeafAlloc? entity = null;
-            await using var transaction = await leafContext.Database.BeginTransactionAsync(cancellationToken);
+            using var transaction = leafContext.UnitOfWork.GetOrBeginTransaction();
             try
             {
-                var allocToUpdate = await leafContext.LeafAlloc.FirstOrDefaultAsync(p => p.BizTag == bizTag, cancellationToken);
+                var allocToUpdate = await leafContext.LeafAlloc.Where(p => p.BizTag == bizTag).FirstAsync(cancellationToken);
                 if (allocToUpdate != null)
                 {
                     allocToUpdate.MaxId += allocToUpdate.Step;
-                    await leafContext.SaveChangesAsync(cancellationToken);
+                    await leafContext.LeafAlloc.UpdateAsync(allocToUpdate, cancellationToken);
                 }
 
                 // 执行查询操作
-                entity = await leafContext.LeafAlloc.Where(p => p.BizTag == bizTag).FirstOrDefaultAsync(cancellationToken);
+                entity = await leafContext.LeafAlloc.Where(p => p.BizTag == bizTag).FirstAsync(cancellationToken);
 
-                // 提交事务
-                await transaction.CommitAsync(cancellationToken);
+                await leafContext.SaveChangesAsync(cancellationToken);
             }
             catch (Exception)
             {
@@ -40,21 +39,19 @@ namespace bms.Leaf.Segment.DAL.MySql.Impl
         public async Task<LeafAlloc?> UpdateMaxIdByCustomStepAndGetLeafAllocAsync(LeafAlloc leafAlloc, CancellationToken cancellationToken = default)
         {
             LeafAlloc? entity = null;
-            await using var transaction = await leafContext.Database.BeginTransactionAsync(cancellationToken);
+            using var transaction = leafContext.UnitOfWork.GetOrBeginTransaction();
             try
             {
-                var allocToUpdate = await leafContext.LeafAlloc.FirstOrDefaultAsync(p => p.BizTag == leafAlloc.BizTag, cancellationToken);
+                var allocToUpdate = await leafContext.LeafAlloc.Where(p => p.BizTag == leafAlloc.BizTag).FirstAsync(cancellationToken);
                 if (allocToUpdate != null)
                 {
                     allocToUpdate.MaxId += leafAlloc.Step;
-                    await leafContext.SaveChangesAsync(cancellationToken);
+                    await leafContext.LeafAlloc.UpdateAsync(allocToUpdate, cancellationToken);
                 }
-
                 // 执行查询操作
-                entity = await leafContext.LeafAlloc.Where(p => p.BizTag == leafAlloc.BizTag).FirstOrDefaultAsync(cancellationToken);
+                entity = await leafContext.LeafAlloc.Where(p => p.BizTag == leafAlloc.BizTag).FirstAsync(cancellationToken);
 
-                // 提交事务
-                await transaction.CommitAsync(cancellationToken);
+                await leafContext.SaveChangesAsync(cancellationToken);
             }
             catch (Exception)
             {
@@ -67,22 +64,21 @@ namespace bms.Leaf.Segment.DAL.MySql.Impl
         public LeafAlloc? UpdateMaxIdAndGetLeafAlloc(string bizTag)
         {
             LeafAlloc? entity = null;
-            using var transaction = leafContext.Database.BeginTransaction();
+            using var transaction = leafContext.UnitOfWork.GetOrBeginTransaction();
             try
             {
-                var allocToUpdate = leafContext.LeafAlloc.FirstOrDefault(p => p.BizTag == bizTag);
+                var allocToUpdate = leafContext.LeafAlloc.Where(p => p.BizTag == bizTag).First();
                 if (allocToUpdate != null)
                 {
                     allocToUpdate.MaxId += allocToUpdate.Step;
                     leafContext.LeafAlloc.Update(allocToUpdate);
-                    leafContext.SaveChanges();
                 }
 
                 // 执行查询操作
-                entity = leafContext.LeafAlloc.Where(p => p.BizTag == bizTag).FirstOrDefault();
+                entity = leafContext.LeafAlloc.Where(p => p.BizTag == bizTag).First();
 
                 // 提交事务
-                transaction.Commit();
+                leafContext.SaveChanges();
             }
             catch (Exception)
             {
@@ -95,22 +91,21 @@ namespace bms.Leaf.Segment.DAL.MySql.Impl
         public LeafAlloc? UpdateMaxIdByCustomStepAndGetLeafAlloc(LeafAlloc leafAlloc)
         {
             LeafAlloc? entity = null;
-            using var transaction = leafContext.Database.BeginTransaction();
+            using var transaction = leafContext.UnitOfWork.GetOrBeginTransaction();
             try
             {
-                var allocToUpdate = leafContext.LeafAlloc.FirstOrDefault(p => p.BizTag == leafAlloc.BizTag);
+                var allocToUpdate = leafContext.LeafAlloc.Where(p => p.BizTag == leafAlloc.BizTag).First();
                 if (allocToUpdate != null)
                 {
                     allocToUpdate.MaxId += leafAlloc.Step;
                     leafContext.LeafAlloc.Update(allocToUpdate);
-                    leafContext.SaveChanges();
                 }
 
                 // 执行查询操作
-                entity = leafContext.LeafAlloc.Where(p => p.BizTag == leafAlloc.BizTag).FirstOrDefault();
+                entity = leafContext.LeafAlloc.Where(p => p.BizTag == leafAlloc.BizTag).First();
 
                 // 提交事务
-                transaction.Commit();
+                leafContext.SaveChanges();
             }
             catch (Exception)
             {

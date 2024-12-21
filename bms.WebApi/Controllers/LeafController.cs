@@ -2,6 +2,7 @@
 using bms.WebApi.Common;
 using bms.WebApi.Exceptions;
 using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics;
 
 namespace bms.WebApi.Controllers
 {
@@ -26,10 +27,15 @@ namespace bms.WebApi.Controllers
         [HttpGet("api/segment/get/{key}")]
         public async Task<IActionResult> GetSegmentId(string key)
         {
-            return await ParseAsync(async () =>
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
+            var result = await ParseAsync(async () =>
             {
                 return Ok(ResultParser.ParseResult(key, await _segmentIdGen.GetAsync(key)));
             });
+            stopwatch.Stop();
+            Console.WriteLine($"号段Id耗时：{stopwatch.ElapsedMilliseconds}ms");
+            return result;
         }
 
         /// <summary>
@@ -40,10 +46,15 @@ namespace bms.WebApi.Controllers
         [HttpGet("api/snowflake/get/{key}")]
         public async Task<IActionResult> GetSnowflakeId(string key)
         {
-            return await ParseAsync(async () =>
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
+            var result = await ParseAsync(async () =>
             {
                 return Ok(ResultParser.ParseResult(key, await _snowflakeIdGen.GetAsync(key)));
             });
+            stopwatch.Stop();
+            Console.WriteLine($"雪花Id耗时：{stopwatch.ElapsedMilliseconds}ms");
+            return result;
         }
 
         /// <summary>

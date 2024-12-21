@@ -3,10 +3,10 @@ using Autofac.Extensions.DependencyInjection;
 using bms.Leaf.Initializer;
 using bms.Leaf.Kestrel;
 using bms.Leaf.Logging;
-using bms.Leaf.MySQL;
+using bms.Leaf.PostgreSQL;
 using bms.Leaf.Redis;
-using bms.Leaf.Swagger;
 using bms.Leaf.RedisHolder;
+using bms.Leaf.Swagger;
 using bms.WebApi.Services;
 
 namespace bms.WebApi
@@ -30,12 +30,12 @@ namespace bms.WebApi
             // 了解有关在 https://aka.ms/aspnetcore/swashbuckle 配置 Swagger/OpenAPI 的更多信息
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerDocs();
+            builder.Services.AddPostgreSQL();
             builder.Services.AddInitializers(typeof(IIDGenInitializer));
             builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
             builder.Host.ConfigureContainer<ContainerBuilder>(builder =>
             {
                 builder.AddIdGen();
-                builder.AddMySQL();
                 builder.AddRedis();
                 builder.AddRedisHolder();
                 builder.AddInititalizer();

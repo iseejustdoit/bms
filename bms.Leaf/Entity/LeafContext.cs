@@ -1,14 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using FreeSql;
 
 namespace bms.Leaf.Entity
 {
     public class LeafContext : DbContext
     {
-        public LeafContext(DbContextOptions<LeafContext> options) : base(options)
-        {
-
-        }
-
-        public DbSet<LeafAlloc> LeafAlloc { get; set; }
+        public required DbSet<LeafAlloc> LeafAlloc { get; set; }
     }
 }
